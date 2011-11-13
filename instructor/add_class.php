@@ -20,8 +20,7 @@
                     <li class='placeholder' style='font-style:italic;font-weight:normal'>Add students here</li>
                 </ul>
                 <input type = "submit" value = "Add Class" />
-                <!-- Java script that allows you to drag and drop students from a list into a class
-                Class list will be on left and student list will be on right-->
+                
             </form>
         </div>
 
@@ -35,6 +34,8 @@
                 ?>
             </ul>
         </div>
+		<!-- Java script that allows you to drag and drop students from a list into a class
+                Class list will be on left and student list will be on right-->
         <script>
             $(document).ready(function(){
                 $("#classlist").droppable({

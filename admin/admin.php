@@ -133,6 +133,7 @@ Username:<br>
 Level:<br>
 <select name="updlevel">
 <option value="1">1
+<option value="5">5
 <option value="9">9
 </select>
 </td>
@@ -205,54 +206,6 @@ Days:<br>
 </tr>
 <tr>
 <td>
-<?
-/**
- * Ban User
- */
-?>
-<h3>Ban User</h3>
-<? echo $form->error("banuser"); ?>
-<form action="adminprocess.php" method="POST">
-Username:<br>
-<input type="text" name="banuser" maxlength="30" value="<? echo $form->value("banuser"); ?>">
-<input type="hidden" name="subbanuser" value="1">
-<input type="submit" value="Ban User">
-</form>
-</td>
-</tr>
-<tr>
-<td><hr></td>
-</tr>
-<tr><td>
-<?
-/**
- * Display Banned Users Table
- */
-?>
-<h3>Banned Users Table Contents:</h3>
-<?
-displayBannedUsers();
-?>
-</td></tr>
-<tr>
-<td><hr></td>
-</tr>
-<tr>
-<td>
-<?
-/**
- * Delete Banned User
- */
-?>
-<h3>Delete Banned User</h3>
-<? echo $form->error("delbanuser"); ?>
-<form action="adminprocess.php" method="POST">
-Username:<br>
-<input type="text" name="delbanuser" maxlength="30" value="<? echo $form->value("delbanuser"); ?>">
-<input type="hidden" name="subdelbanned" value="1">
-<input type="submit" value="Delete Banned User">
-</form>
-</td>
 </tr>
 </table>
 </body>

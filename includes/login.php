@@ -10,8 +10,8 @@
     <form action="process.php" method="POST" style='width:95%;margin:auto auto;margin-top:.75em;' >
         <div  border="0" cellspacing="0" cellpadding="3">
             <div>
-                <div title='Alphanumeric (0-9 &amp; a-z) characters and underscores(_). Minimum 5 characters.' >
-                    <b>Username:</b>
+                <div title="Alphanumeric (0-9 &amp; a-z) characters and underscores(_) emails allow '@' and '.'. Minimum 5 characters." >
+                    <b>Username or email:</b>
 
                     <input type="text" name="user" required="required" pattern="[a-z0-9A-Z_@.]{5,}" minlength='5' maxlength="30" value="<?php echo $form->value("user"); ?>">
                 </div>

@@ -78,7 +78,7 @@
     * welcome email to newly registered users.
     */
     define("EMAIL_FROM_NAME", "Rate-Your-Mate System");
-    define("EMAIL_FROM_ADDR", "RYM@rate-your-mate.com");
+    define("EMAIL_FROM_ADDR", "sjpage@plymouth.edu");
     define("EMAIL_WELCOME", false);
 
     /**

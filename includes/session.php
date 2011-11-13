@@ -26,6 +26,10 @@
         var $url;					//The page url current being viewed
         var $referrer;				//Last recorded site page viewed
         var $lastlogin;             //Last time user logged in
+        var $currclass;             // the class the user is currently working in
+        var $currproj;              // the project the user is currently working in - associated with $currclass
+        var $currgroup;             // the group the user is currently working in - associated with $currproj
+
         /**
         * Note: referrer should really only be considered the actual
         * page referrer in process.php, any other time it may be
@@ -111,6 +115,15 @@
                 $this->realname  = $this->userinfo['fname']." ".$this->userinfo['lname'];
                 $this->UID    = $this->userinfo['UID'];
                 $this->userlevel = $this->userinfo['ulevel'];
+                $curproj=$database->getProjects($this->UID);
+                $this->currproj = (count($curproj)==1)? $curproj[0]['pid']:'';
+                $curclas=$database->getClasses($this->UID);
+                $this->currclass = (count($curclas)==1)? $curclas[0]['CLID']:'';
+                if(count($curproj)==1){
+                    $curgrp=$database->getGroupID($curproj[0]['pid'],$this->UID);
+                    $this->currgroup = ($curgrp!='')? $curgrp:'';
+                }
+
                 return true;
             }
             /* User not logged in */
@@ -135,7 +148,7 @@
             }
             else{
                 /* Check if username is not alphanumeric */
-                if(!preg_match("/^([0-9a-z])*$/i", $subuser)){
+                if(!preg_match("/^([0-9a-z@.])*$/i", $subuser)){
                     $form->setError($field, "* Username not alphanumeric");
                 }
             }

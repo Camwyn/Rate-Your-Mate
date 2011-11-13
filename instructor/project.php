@@ -11,7 +11,8 @@
     <div id='leftside' class='left half'>
         <input type='hidden' name='inst' value='<?php echo $session->UID;?>'/>
         <div class='m-b-1em'>
-            <label for='class'>Class:</label> <select name='class' id='class'>
+            <label for='class' style='float:left;margin-right:1em;'>Class:</label>
+            <select name='class' id='class' style='float:left;margin-right:1em;'>
                 <option selected='selected'>Choose one...</option>
                 <?php
                     foreach($classes as $class){
@@ -21,8 +22,8 @@
                     }
                 ?>            
             </select>
-            <label for='pid' style='margin-left:2em;'>Project ID:</label> <input type='text' id='pid' name='pid' placeholder='Insert project name.' />
-            <div class='ui-state-error ui-corner-all' style='display:none;font-style:italic;padding:.1em;width:210px;float:right' id='projname'>
+            <label for='pid' style='float:left;margin-right:1em;'>Project ID:</label> <input type='text' id='pid' name='pid' placeholder='Insert project name.' style='float:left;margin-right:1em;' />
+            <div class='ui-state-error ui-corner-all' style='display:none;font-style:italic;padding:.1em;width:210px;float:left;' id='projname'>
                 <span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span>Project name already in use!
             </div>
         </div>

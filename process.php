@@ -48,7 +48,7 @@
 
             /* Login successful */
             if($retval){
-                header("Location: ".$session->referrer);
+                header("Location: welcome.php");
             }else{ /* Login failed */
                 $_SESSION['value_array'] = $_POST;
                 $_SESSION['error_array'] = $form->getErrorArray();
