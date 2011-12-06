@@ -7,13 +7,12 @@
 -->
 <html>
     <body>
-        <h1><?php echo $page;?></h1>
         <div class='left half ui-widget-content ui-tabs ui-corner-all'>
             <div class='ui-corner-top ui-widget-header m-b-1em'>Class:</div>
-            <form name="className" method="post">
+            <form name="className" id="className" method="post">
                 <!-- input -->
                 Class Name: <input type="text" name='cname' id='cname'>
-                <div class='ui-state-error ui-corner-all' style='display:none;font-style:italic;padding:.1em;width:210px;float:right' id='classname'>
+                <div class='ui-state-error ui-corner-all' style='display:none;font-style:italic;padding:.1em;float:right' id='classname'>
                     <span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span>Class name already in use!
                 </div>
                 <ul id='classlist' style='min-height:2em;list-style:none'>
@@ -38,6 +37,7 @@
                 Class list will be on left and student list will be on right-->
         <script>
             $(document).ready(function(){
+                $("input:submit, button").button();
                 $("#classlist").droppable({
                     activeClass: "ui-state-highlight",
                     hoverClass: "ui-state-hover",
@@ -59,13 +59,34 @@
                     $.ajax({
                         type:"POST",  
                         url: "../jx/classname.php?v="+jQuery.Guid.New(),  
-                        data: "classname="+$('#cname').val()+"&sid="+jQuery.Guid.New(),
+                        data: "cname="+$('#cname').val()+"&sid="+jQuery.Guid.New(),
                         success:function(data){
                             (data=='1')? ($("#cname").css('backgroundColor','#F0B5B5'),$("#classname").show()) : ($("#pid").css('backgroundColor','#FFF'),$("#classname").hide());
                         }
                     });
                 }
 
+				$("#className").submit(function(){
+					
+					var cntr =0;
+					var strng='';
+					$("#classlist").children().each(function(){
+                        strng+='&id['+cntr+']='+$(this).attr('id');
+						cntr++;
+					});
+					
+					$.ajax({
+                        type:"POST",  
+                        url: "../jx/newclass.php?v="+jQuery.Guid.New(),  
+                        data: "cname="+$('#cname').val()+strng+"&sid="+jQuery.Guid.New(),
+                        success:function(data){
+								
+						}
+                    });
+					return false;
+					
+				}); 
+				
                 $('li>a').live('click', function(){
                     var id=$(this).parent().attr('id');
                     $(this).parent().remove();

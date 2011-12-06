@@ -1,25 +1,51 @@
 <?php //do NOT put anything above this line!
     error_reporting(-1);
-    $_GET['page']=$page='Student Input'; //Variable to set up the page title - feeds header.php
+    $_GET['page']=$page='Peer Evaluation'; //Variable to set up the page title - feeds header.php
     include('../includes/header.php');//this include file has all the paths for the stylsheets and javascript in it.
-    $project=$session->currproj;//pass me a project
+    $project=$_SESSION['currproj'];//pass me a project
     // is there an open eval for this project?
-    $eid=$database->getEID($project);?>
-<body class='two-thirds' style='min-width:105em;'>
-    <h1><?php echo $page;?><img src='../img/help.png' title='help'/></h1>
+    $eid=(isset($_GET['eval']))?$_GET['eval']:$database->getEID($project);
+    try{
+        $sth=$database->connection->prepare("SELECT cdate FROM Evals WHERE EID=:eid");
+        $sth->bindParam(':eid', $eid, PDO::PARAM_STR);
+        $sth->execute();
+        while($row=$sth->fetch(PDO::FETCH_ASSOC)){
+            $duedate=$row['cdate'];
+        }
+    }catch(Exception $e){
+        echo $e;
+    }
+?>
+<body style='min-width:105em;'>
+    <h3 style='font-style:italic;'>This evaluation is due on <?php echo date('D M jS, Y',strtotime($duedate));?> by <?php echo date('g:i a',strtotime($duedate));?> </h3>
     <?php
-        $maxpoints=$database->getMaxPoints($project);
-        $flag=$database->getFlag($session->UID,$eid,null);//second and third arguments are optional, we're looking for review, so we pass null for contract.
-        $gid=$database->getGroupID($project,$session->UID);
-        $contdata=$database->getContract($gid);// Grab all the info in one fell swoop!
-        $behaviors=$contdata['behaviors'];// But we only need behaviors, so separate them out for easier access.
-        $team=$database->groupRoster($gid,$session->UID);//get list of group members from database
-        $disabled=($flag)?"disabled='disabled'":'';
         if($eid){
+            $maxpoints=$database->getMaxPoints($project);
+            $flag=$database->getFlag($session->UID,$eid,null);//second and third arguments are optional, we're looking for a review, so we pass null for contract.
+            $gid=(isset($_SESSION['currgroup']))?$_SESSION['currgroup']:$database->getGroupID($project,$session->UID);
+            $contdata=$database->getContract($gid);// Grab all the info in one fell swoop!
+            $behaviors=$contdata['behaviors'];// But we only need behaviors, so separate them out for easier access.
+            $team=$database->groupRoster($gid,$session->UID);//get list of group members from database, minus current user
+            $numstudents=count($team);
+            try{
+                $sth=$database->connection->prepare("SELECT R.subject AS subject, R.BID AS BID,R.RID AS RID, R.scomm AS comments, S.score AS score FROM Reviews AS R JOIN Scores AS S ON (R.subject=S.subject AND R.EID=S.EID AND R.judge=S.judge) WHERE R.judge=:judge AND R.EID=:eid");
+                $rid=null;
+                $sth->execute(array(':judge'=>$session->UID,':eid'=>$eid));
+                $evals=array();
+                while($row=$sth->fetch(PDO::FETCH_ASSOC)){
+                    $rid=$row['RID'];
+                    $scores[$row['subject']]=$row['score'];
+                    $evals[$row['BID']][$row['subject']]=$row['comments'];
+                }
+            }catch(Exception $e){
+                echo $e;
+            }
+            $disabled=($flag)?"disabled='disabled'":'';
         ?>
         <form id='behaveform' method='post'>
             <input type='hidden' name='id' id='id' value='<?php echo $session->UID;?>'/>
             <input type='hidden' name='EID' id='EID' value='<?php echo $eid;?>'/>
+            <input type='hidden' name='RID' id='RID' value='<?php echo $rid;?>'/>
             <input type='hidden' name='maxpoints' id='maxpoints' value='<?php echo $maxpoints;?>'/>
             <div class='half' >
                 <?php foreach($behaviors as $behave){
@@ -30,15 +56,17 @@
                         foreach($team as $teammate){
                             $id=$teammate['id'];
                             $name=$teammate['fname']." ".$teammate['lname'];
-                            echo"<div class='ui-corner-all' style='border:1px solid #A6C9E2;border-left:2em solid ".$colors[$c].";'>"
+                            echo"<div class='ui-corner-all' style='width:54.3em;border:1px solid #A6C9E2;border-left:2em solid ".$colors[$c].";'>"
                             ."<textarea rows='5' cols='10' name='comment-$bid.$id'"
-                            ."style='border:none;overflow:auto;resize:vertical;width:100%' id='needs to pull rid from dB' $disabled placeholder='Enter Comments for $name Here...'></textarea></div>";
+                            ."style='border:none;overflow:auto;resize:vertical;width:50em' $disabled placeholder='Enter Comments for $name Here...'>";
+                            if(isset($evals[$bid])){echo $evals[$bid][$id];}
+                            echo"</textarea></div>";
                             ($c<6)?$c++:$c=0;//for looping through our rainbow ;)
                         }
                 }?>
 
             </div>
-            <div class='third' style='position:fixed;left:51%;top:0px;min-width:330px;width:330px;'>
+            <div class='third' style='position:fixed;margin-left:65em;top:0px;width:200px;'>
                 <div class='half' style='display:inline;margin-right:5%;margin-left:5%'>
                     <div class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em whole'>
                         <div class='ui-corner-top ui-widget-header m-b-1em'>Student Overall Scores</div>
@@ -47,49 +75,45 @@
 
                             <ul id='slidelist' style='list-style: none;padding-left:0px;'>
                                 <?php
-                                    $c=0;
-
+                                    $c=0;//not sure I need to keep resetting this to 0, but better safe than sorry!
                                     foreach($team as $teammate){
                                         $id=$teammate['id'];
                                         $name=$teammate['lname'].", ".$teammate['fname'];
-                                        echo"<li value='$id' title='$name' style='height:2.1em;width:25em;background-color:".$colors[$c]."'><div id='slider-$id' class='slider' style='float:left;width:35%;margin:.5em;background-color:".$colors[$c].";color:".$colors[$c].";'></div>";
-                                        echo"<div id='name-$id' style='float:left;margin-top:.5em;margin-left:1em;'>$name</div><input id='sval-$id' title='$name' class='slideval' style='float:right;width:2.5em;font-weight:bold;margin-top:.2em;margin-right:.2em;' /><div class='clear'></div></li>";
+                                        echo"<li value='$id' title='$name' style='padding:.2em;background-color:".$colors[$c]."'>"
+                                        ."<div id='slider-$id' class='slider' style='width:65%;margin:.5em;background-color:".$colors[$c].";color:".$colors[$c].";'></div>"
+                                        ."<div><div id='name-$id' style='float:left;margin-top:.5em;margin-left:1em;font-weight:bold;color:#FFF'>$name</div>";
+                                        $scoreid=(isset($scores[$id]))?$scores[$id]:'';
+                                        echo"<input id='sval-$id' title='$name' class='slideval' style='text-align:right;float:right;width:2.5em;font-weight:bold;margin-top:.2em;margin-right:.2em;' value='$scoreid'/></div>"
+                                        ."<input type='hidden' id='slidval-$id' value='$scoreid'/>"
+                                        ."<div class='clear'></div></li>";
                                         ($c<6)?$c++:$c=0;//for looping through our rainbow ;)
                                     }
                                 ?>
                             </ul>
+                            <i>If chart collapses, click on a slider to refresh.</i>
 
-                        </div>
-                        <div class='clear'></div>
-                        <div id='eq-vals'>
-                            <?php
-                                $c=0;
-                                foreach($team as $teammate){
-                                    $id=$teammate['id'];
-
-                                    ($c<6)?$c++:$c=0;//for looping through our rainbow ;)
-                                }
-                            ?>
                         </div>
                     </div>
                 </div>
 
-                <div class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em' style='min-width:330px;width:330p;'>
+                <div class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em' style='min-width:200px;width:200px;'>
                     <div class='ui-corner-top ui-widget-header m-b-1em'>Behavior Description:</div>
                     <p id='explanation' >Click on a behavior name to get the description of the behavior.</p>
                 </div>
             </div>
             <br/>
-            <button type="submit" name='save' id='save'>Save Changes</button>
-            <button type="submit" name='accept' id='accept'>Submit</button>
-            <button type="reset" name='reset' id='reset' onClick='history.go(0)'>Cancel</button>
+            <button type="reset" name='reset' id='reset' onClick='history.go(0)'  style='font-size:1.5em;'>Cancel</button>
+            <button type="submit" name='save' id='save'  style='font-size:1.5em;'>Save Changes</button>
+            <button type="submit" name='accept' id='accept'  style='font-size:1.5em;color:#AA4643'>Submit</button>
         </form>
         <div id='dialog'>Dialog placeholder</div>
         <div id='modialog'>You must fill in all comments before scoring.</div>
         <script type='text/javascript' src='../js/jquery.linkedsliders.min.js'></script>
         <script>
-            $(function(){
-                var maxpoints=$('#maxpoints').val();
+            $(document).ready(function(){
+                var maxPoints=$('#maxpoints').val();
+                var numStudents=parseInt(<?php echo $numstudents;?>);
+                var maxIndPoints=maxPoints-$('#slidelist>li').length+1;
                 $("input:submit, button, #reset").button();
                 $( "#dialog" ).dialog({
                     autoOpen:false,
@@ -104,60 +128,24 @@
                         Ok: function(){$( this ).dialog( "close" );}
                     }
                 });
-                //slider stuff:
 
-                $('.slider').slider({
-                    orientation: 'horizontal',
-                    max:21,
-                    min:1,
-                    step: 1,
-                    //disabled: true,
-                    slide:function(event, ui){
-                        $('.slider').slider().each(function(i){
-                            var vid=$(this).attr('id');
-                            var sval = $( "#"+vid ).slider( "option", "value" );
-                            $('#sval-'+vid.substr(7)).val(sval);
-                            chart.series[0].data[i].update(y = sval);
-                            i++;
-                        });
-                    }
-                }).linkedSliders({
-                    total:25,
-                    policy:'next'
-                });
-                $('.slideval').keyup(function(){
-                    var ival=$(this).val();
-                    var iid=$(this).attr('id');
-                    $('#slider-'+iid.substr(5)).slider( "option", "value", ival );
-                    //var t=setTimeout("distributeVals()",2000);
-                })
-                $('.slider').slider().each(function(i){
-                        var vid=$(this).attr('id');
-                        var sval = $( "#"+vid ).slider( "option", "value" );
-                        $('#sval-'+vid.substr(7)).val(sval);
-                        i++;
-                    });
-
-                $('.behavetitle').click(function(){
-                    $('#explanation').text($(this).attr('title'));
-                    return false;
-                })
-                $('.ui-slider-handle').mousedown(function(){
-                    var comments=true;
-                    $('textarea').each(function(){
-                        comments=($(this).val().length>0)? false:true;
-                    });
-                    //if(comments==true){$('#modialog').dialog("open");}else{$( ".slider" ).slider( "option", "disabled", false );}
-                });
 
                 //pie chart stuff:        
                 var optionsPie = {// set up 'blank' chart
                     chart: {
+                        height: 200,
                         renderTo: 'pie',
                         plotBackgroundColor: null,
                         plotBorderWidth: null,
                         plotShadow: false,
                         defaultSeriesType: 'pie'
+                    },
+                    plotOptions:{
+                        pie: {
+                            dataLabels: {
+                                enabled: false
+                            }
+                        }
                     },
                     title: {
                         text: ''
@@ -167,24 +155,22 @@
                             return '<b>'+ this.point.name +'</b>: '+ this.y ;
                         }
                     },
-                    xAxis: {
-                        categories: []
-                    },
                     series: []
                 };
                 var seriesPie = {
                     data: []      
                 };
-                var seriesPieItem = new Array(); // eg:  ['name, value]
 
-                $('.slider').slider().each(function(i){//fill data values
-                    seriesPieItem = new Array();
-                    var vid=$(this).attr('id').substr(7);
+                $('input[id^=slidval-]').each(function(){//fill data values
+                    var seriesPieItem = new Array();
+                    var vid=$(this).attr('id').substr(5);
                     var nam=$("#name-"+vid).text();
-                    seriesPieItem.push(nam);
-                    var val=$(this).slider('option','value');                    
+                    var val=($(this).val()>0)?$(this).val():(maxPoints/numStudents);
+                    $(this).val(val);
+                    $("#slider-"+vid).slider( "option", "value", val );
+                    seriesPieItem.push(nam);                    
                     seriesPieItem.push(parseFloat(val));
-                    seriesPie.data.push(seriesPieItem);
+                    seriesPie.data.push(seriesPieItem);                    
                 });
 
                 optionsPie.series.push(seriesPie);
@@ -193,29 +179,104 @@
                 var chart = new Highcharts.Chart(optionsPie);
 
                 $("#accept, #save").click(function(){
-                    var scorenums;
-                    $("input[id^=sval-]").each(function(){scorenums+="&"+$(this).attr('id')+"="+$(this).val();});
-                    $("textarea[name^=comment-]").each(function(){scorenums+="&"+$(this).attr('name')+"="+$(this).val();});
-                    var id="&id="+$('#id').val();
-                    var method="method="+$(this).attr('id');
-                    $.ajax({  
-                        type:"POST",  
-                        url: "../jx/review2.php?v="+jQuery.Guid.New(),  
-                        data: method+id+scorenums+"&sid="+jQuery.Guid.New(),
-                        success:function(){
-                            $("#dialog").text("Your scoring has been submitted.");
+                    var scorenums='';
+                    var twit=true;
+                    $("input[id^=sval-]").each(function(){
+                        if($(this).val()==''){
+                            $("#dialog").text("You have not entered scores for your teammates!");
                             $("#dialog").dialog("open");
-                        },
-                        error:function(){
-                            $("#dialog").text("There was an error, please try again.");
-                            $("#dialog").dialog("open");
-                        }  
+                            twit=false;
+                            return false;
+                        }
                     });
+                    if(twit){
+                        $("input[id^=sval-]").each(function(){
+                            scorenums+="&"+$(this).attr('id')+"="+$(this).val();
+                        });
+                        $("textarea[name^=comment-]").each(function(){scorenums+="&"+$(this).attr('name')+"="+$(this).val();});
+                        var id="&id="+$('#id').val();
+                        var EID="&EID="+$("#EID").val();
+                        var RID="&RID="+$("#RID").val();
+                        var method="method="+$(this).attr('id');
+                        $.ajax({  
+                            type:"POST",  
+                            url: "../jx/review.php?v="+jQuery.Guid.New(),  
+                            data: method+id+EID+RID+scorenums+"&sid="+jQuery.Guid.New(),
+                            success:function(){
+                                $("#dialog").text("Your scoring has been submitted.");
+                                $("#dialog").dialog("open");
+                            },
+                            error:function(){
+                                $("#dialog").text("There was an error, please try again.");
+                                $("#dialog").dialog("open");
+                            }  
+                        });
+                    }
                     return false;  
+                });
+
+                //slider stuff:
+
+                function distribVals(m){
+                    if(m==null){m=0;}
+                    $('.slider').slider().each(function(i){                            
+                        var sval = $(this).slider( "option", "value" );
+                        var vid=$(this).attr('id').substr(7);
+                        var nam=$("#name-"+vid).text();
+                        chart.series[0].data[i].update([nam,sval]);
+                        $('#sval-'+vid).val(sval);
+                        i++;
+                    });
+
+                }
+
+                $('.slider').slider({
+                    max: maxIndPoints
+                }).linkedSliders({
+                    total:maxPoints,
+                    policy:'next'
+                });
+
+                $('.slider').slider().each(function(i){
+                    var vid=$(this).attr('id').substr(7);
+                    var val=$('#sval-'+vid).val();
+                    var nam=$("#name-"+vid).text();
+                    $('#slider-'+vid).slider( "option", "value", val );
+                    //chart.series[0].data[i].update([nam,val]);
+                    i++;
+                });
+
+                $('.slideval').keyup(function(i){
+                    var val=$(this).val();
+                    var vid=$(this).attr('id').substr(5);
+                    $('#slider-'+vid).slider( "option", "value", val );
+                    var sindex=$(this).index('.slideval');
+                    var nam=$("#name-"+vid).text();
+                    //chart.series[0].data[sindex].update([nam,val]);
+                });
+
+                $('.behavetitle').click(function(){
+                    $('#explanation').text($(this).attr('title'));
+                    return false;
+                });
+                $('.ui-slider-handle').mousedown(function(){
+                    var comments=true;
+                    $('textarea').each(function(){
+                        if($(this).val().length>0){comments=false;}
+                    });
+                    //if(comments==true){$('#modialog').dialog("open");}else{$( ".slider" ).slider( "option", "disabled", false );}
+                });
+
+                $('.slider').slider().each(function(i){
+                    $(this).slider('option','change',function(){
+                        distribVals();
+                    });
                 });
 
             });
         </script>
-        <?php } ?>
+        <?php }else{
+            echo"<h3>No evaulation due at this time.</h3>";
+    } ?>
     </body>
 </html>

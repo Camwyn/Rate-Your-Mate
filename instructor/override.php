@@ -7,7 +7,6 @@
 
 <body>
     <div class='left half'>
-	<h1>Override Form</h1>
     <form name = "className" action = "link" method = "post">
         <!-- This will be pulled from database -->
 		<div  class='m-b-1em'>

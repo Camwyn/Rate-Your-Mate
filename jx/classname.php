@@ -16,5 +16,3 @@
         }    
         echo $number_of_rows;
     }
-
-?>

@@ -1,5 +1,6 @@
 
-<div class='ui-widget ui-widget-content ui-corner-all' style='width:450px;position:fixed;top:50%;left:50%;margin-left:-200px;margin-top:-100px;' id='login'>
+<div class='ui-widget ui-widget-content ui-corner-all' style='width:450px;position:fixed;top:50%;left:50%;margin-left:-200px;margin-top:-120px;' id='login'>
+<img src="img/rymLogo.png"/><br /><br />
     <div class="ui-widget-header ui-corner-top">Rate-Your-Mate: Login</div>
     <?php
         /* User not logged in, display the login form. If errors occurred, they will be displayed. */          
@@ -13,7 +14,7 @@
                 <div title="Alphanumeric (0-9 &amp; a-z) characters and underscores(_) emails allow '@' and '.'. Minimum 5 characters." >
                     <b>Username or email:</b>
 
-                    <input type="text" name="user" required="required" pattern="[a-z0-9A-Z_@.]{5,}" minlength='5' maxlength="30" value="<?php echo $form->value("user"); ?>">
+                    <input style='margin-left:.245em' type="text" name="user" required="required" pattern="[a-z0-9A-Z_@.]{5,}" minlength='5' maxlength="30" value="<?php echo $form->value("user"); ?>">
                 </div>
                 <div>
                     <?php echo $form->error("user"); ?>
@@ -23,7 +24,7 @@
                 <div title='Alphanumeric (0-9 &amp; a-z) characters and underscores(_). 8-15 characters.' >
                     <b>Password:</b>
 
-                    <input type="password" required="required" pattern="[0-9a-zA-Z_]{8,}" minlength='8' name="pass" maxlength="15" value="<?php echo $form->value("pass"); ?>">
+                    <input style='margin-left:5em' type="password" required="required" pattern="[0-9a-zA-Z_]{8,}" minlength='8' name="pass" maxlength="15" value="<?php echo $form->value("pass"); ?>">
                 </div>
                 <div>
                     <?php echo $form->error("pass"); ?>

@@ -5,7 +5,6 @@
     //need to add option to edit existing projects!
 ?>
 
-<h1><?php echo $page;?><img src='../img/help.png' title='help'/></h1>
 <!-- start the form! -->
 <form id='newproj'  method='post' action='procnew.php'>
     <div id='leftside' class='left half'>
@@ -23,13 +22,14 @@
                 ?>            
             </select>
             <label for='pid' style='float:left;margin-right:1em;'>Project ID:</label> <input type='text' id='pid' name='pid' placeholder='Insert project name.' style='float:left;margin-right:1em;' />
+            <div id='tabwarn' style='float:left'>&nbsp;Don't worry! The groups will be renumbered in order when the project is finalized.</div>
             <div class='ui-state-error ui-corner-all' style='display:none;font-style:italic;padding:.1em;width:210px;float:left;' id='projname'>
                 <span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span>Project name already in use!
             </div>
         </div>
 
         <div class='m-b-1em'>
-            <button id="add_tab" title='Click to add another group tab.' style="float:right;position:relative;z-index:100;top:2.8em;right:.3em;color:#E17009">Add Group</button><span id='tabWarn' style='display:none'>&nbsp;Don't worry! The groups will be renumbered in order when the project is finalized.</span>
+            <button id="add_tab" title='Click to add another group tab.' style="float:right;position:relative;z-index:100;top:2.8em;right:.3em;color:#AA4643">Add Group</button>
         </div>
 
         <div class='whole clear m-b-1em'>
@@ -52,10 +52,20 @@
         </div>
 
         <div class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em'>
-            <div class='ui-corner-top ui-widget-header m-b-1em'>Project Dates:</div>
+            <div class='ui-corner-top ui-widget-header m-b-1em'>Project Dates and Late Submissions:</div>
             <div class=' ui-tabs ui-widget'>
-                <label for="oDate" style='margin-right:1em;'>Open Date:</label><input type="date" name="oDate" id="oDate"><br />
-                <label for="cDate" style='margin-right:1em;'>Close Date:</label><input type="date" name="cDate" id="cDate" style='margin-left:-2px;'><br />
+                <div class='m-b-1em left' style='margin-right:2em'>
+                    <label for="oDate" style='margin-right:1em;'>Open Date:</label><input type="datetime" name="oDate" id="oDate"><br />
+                    <label for="cDate" style='margin-right:1em;'>Close Date:</label><input type="datetime" name="cDate" id="cDate" style='margin-left:-2px;'>
+                </div>
+                <div class='m-b-1em left'>
+                    <label>Prevent Late Submissions:</label>
+                    <div id='radioset3' class='buttonset m-b-1em m-t-05em'>
+                        <input type="radio" name="late" id="lateyes" value="yes" checked='checked' /><label for="lateyes">Yes</label>
+                        <input type="radio" name="late" id="lateno" value="no"/><label for="lateno">No</label>
+                    </div>
+                </div>
+                <div class='clear'></div>
             </div>
         </div>
 
@@ -63,7 +73,7 @@
             <div class='ui-corner-top ui-widget-header m-b-1em'>Contracts:</div>
             <div class=' ui-tabs ui-widget'>
                 <div class='m-b-1em'>
-                    <label>Who is creating the contract? (instructor always has override privileges)</label>
+                    <label for='contract'>Who is creating the contract? (instructor always has override privileges)</label>
                     <div class='buttonset m-t-05em' id='radioset1'>
                         <input type="radio" name="contract" id='contract1' value="student" checked='checked' />
                         <label for='contract1' title='Allow the students to create their own contract by consensus.'>Students</label>
@@ -71,11 +81,15 @@
                         <label for='contract2' title='Have the students abide by an instructor-created contract.'>Instructor</label>
                     </div>
                 </div>
+                <div class='m-b-1em'>
+                    <label for='contractdate'>When is the contract due?</label>
+                    <input type="datetime" name="contractdate" id="contractdate" />
+                </div>
             </div>
         </div>
 
         <div class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em'>
-            <div class='ui-corner-top ui-widget-header m-b-1em'>Grades and Late Submissions:</div>
+            <div class='ui-corner-top ui-widget-header m-b-1em'>Grades:</div>
             <div class=' ui-tabs ui-widget'>
                 <div class='m-b-1em'>
                     <label>Submit grades for (choose one):</label>
@@ -90,22 +104,21 @@
                         <label for='grades4' title='No grades associated with Rate-Your-Mate'>None</label>
                     </div>
                 </div> 
-
                 <div class='m-b-1em'>
-                    <label >Prevent Late Submissions:</label>
-                    <div id='radioset3' class='buttonset m-b-1em m-t-05em'>
-                        <input type="radio" name="late" id="lateyes" value="yes" checked='checked' /><label for="lateyes">Yes</label>
-                        <input type="radio" name="late" id="lateno" value="no"/><label for="lateno">No</label>
-                    </div>
+                    <label for='numpoints'>Number of grade points for final grade: </label>
+                    <input type="text" name="numpoints" id="numpoints" value='100' /><img title="What's this?" id='numphlp' src="../img/help.png">
+                    <p id='numptext' class='hidden'>
+                        If you would like to use a specific point-quantity for the students' final grades (eg: the RYM portion of the project is 15 points of your final grade) enter it here. Otherwise, the system will return a percentage grade.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 
     <div id='rightside' class='right half'>
-        <div id='studentbox' class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em' style='margin-top:4.8em;min-height:9.2em;'>
+        <div id='studentbox' class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em' style='margin-top:3.2em;min-height:9.2em;'>
             <div class='ui-corner-top ui-widget-header m-b-1em'>Students:</div>
-            <div class=' ui-tabs ui-widget'>Please choose a class to the left to populate the student list.</div>
+            <div class=' ui-tabs ui-widget' id='studentplace'>Please choose a class to the left to populate the student list.</div>
         </div>
 
         <div class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em'>
@@ -113,29 +126,33 @@
             <div class=' ui-tabs ui-widget'>
                 <div class='m-b-1em'>
                     <label for='numeval'>How many evaluations? </label>
-                    <input id='numeval' name='numeval' type="text" class='spin' value="2" size='4' min='0' style='display:inline' title='Grades will be averaged across all evaluations.'>
+                    <input id='numeval' name='numeval' type="text" class='spin' value="2" size='4' min='0' style='display:inline' title='Grades will be averaged across all evaluations.' />
                 </div>
                 <div class='m-b-1em'>
                     <label for='points'>How many points to distribute per evaluation? </label>
-                    <input id='points' name='points' type="text" value="2" size='4' min='0' style='display:inline' title="Decide on the 'points pool' that students have to divide between their teammates on evaluations.">
+                    <input id='points' name='points' type="text" value="2" size='4' min='0' style='display:inline' title="Decide on the 'points pool' that students have to divide between their teammates on evaluations." />
                     <br/><span class='hidden' style='font-style: italic;' id='avgpnts'>(For your average group size, we recommend <span id='recpnt'>X</span>.)</span>
+                </div>
+                <div class='m-b-1em'>
+                    <label for='evalpoints'>How many grade points per evaluation? </label>
+                    <input id='evalpoints' name='evalgradepoints' type="text" value="100" size='4' min='0' style='display:inline' title="Decide on the number of grade points each student gets for each evaluation grade." />
                 </div>
                 <div id='evals'>
                     <div class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em half' id='e1' style='padding-bottom: 0.5em;'>
                         <div class='ui-corner-top ui-widget-header m-b-1em'>Eval 1:</div>
-                        <label for="oDate" style='margin-right:1em;'>Open Date:</label><input type="date" name="e1oDate" id="e1oDate"><br />
-                        <label for="cDate" style='margin-right:1em;'>Close Date:</label><input type="date" name="e1cDate" id="e1cDate" style='margin-left:-2px;'>
+                        <label for="oDate" style='margin-right:1em;'>Open Date:</label><input type="datetime" name="e1oDate" id="e1oDate" /><br />
+                        <label for="cDate" style='margin-right:1em;'>Close Date:</label><input type="datetime" name="e1cDate" id="e1cDate" style='margin-left:-2px;' />
                     </div>
                     <div class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em half' id='e2' style='padding-bottom: 0.5em;'>
                         <div class='ui-corner-top ui-widget-header m-b-1em'>Eval 2:</div>
-                        <label for="oDate" style='margin-right:1em;'>Open Date:</label><input type="date" name="e2oDate" id="e2oDate"><br />
-                        <label for="cDate" style='margin-right:1em;'>Close Date:</label><input type="date" name="e2cDate" id="e2cDate" style='margin-left:-2px;'>
+                        <label for="oDate" style='margin-right:1em;'>Open Date:</label><input type="datetime" name="e2oDate" id="e2oDate" /><br />
+                        <label for="cDate" style='margin-right:1em;'>Close Date:</label><input type="datetime" name="e2cDate" id="e2cDate" style='margin-left:-2px;' />
                     </div>
                 </div>
             </div>    
         </div>
-        <input type='submit' name='createproj' id='createproj' value='Create project' style='color:#E17009;font-size:1.5em;'>
-        <input type='reset' name='reset' id='reset' value='Reset form' style='color:#E17009;font-size:1.5em;'>
+        <input type='reset' name='reset' id='reset' value='Reset form' style='font-size:1.5em;' />
+        <input type='submit' class='ui-state-active' name='createproj' id='createproj' value='Create project' style='font-size:1.5em;' />
     </div>
 
 </form>
@@ -146,16 +163,16 @@
 
     var spinner = $("#points, #numeval").spinner();
     var blargh;
-
     $("#radioset1, #radioset2, #radioset3").buttonset();
 
     function datePick(){
-        $('[id$=oDate], [id$=cDate]').datetimepicker({timeFormat: 'hh:mm:ss',ampm: false});
+        $('[id$=oDate], [id$=cDate], #contractdate').datetimepicker({timeFormat: 'hh:mm:ss',ampm: false});
     }
 
 
 
     $(document).ready(function(){
+        $("#tabwarn").hide();
         datePick();        
         var tab_count = 3;
         $("#dialog").dialog({autoOpen:false,title:"Project Creation"});//hides dialog to prepare for use as needed.
@@ -179,6 +196,17 @@
                 avgPoints();
             }
         });
+        $("#studentbox").hover(function(){
+            if($("#studentplace").text()!=''||$("#studentbox").text()=='There are no students in that class!'){
+                $("#class").animate({backgroundColor:"#AA4643",color:"#FFF",borderTopColor: "#AA4643",borderRightColor: "#AA4643",borderBottomColor: "#AA4643",borderLeftColor: "#AA4643"}, 1000);
+            }
+        },function(){
+            $("#class").animate({borderTopColor: "#F0F0F0",borderRightColor: "#F0F0F0",borderBottomColor: "#F0F0F0",borderLeftColor: "#F0F0F0",color:"#000",backgroundColor:"#FFF"}, 1000);
+        });
+
+        $("#numphlp").mouseover(function(){
+            $("#numptext").show();
+        })
 
         /* testing way to capture spinner value */
         $(".ui-spinner-button").mouseup(function(){
@@ -199,7 +227,7 @@
             var remain=elength-value;
             while(remain<0){
                 elength++;
-                var template = "<div class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em half' id='e"+elength+"' style='padding-bottom: 0.5em;'><div class='ui-corner-top ui-widget-header m-b-1em'>Eval "+elength+":</div><label for='oDate' style='margin-right:1em;'>Open Date:</label><input type='date' name='e"+elength+"oDate' id='e"+elength+"oDate'><br /><label for='cDate' style='margin-right:1em;'>Close Date:</label><input type='date' name='e1cDate' id='e1cDate' style='margin-left:-2px;'><br /></div>";
+                var template = "<div class='ui-corner-all ui-tabs ui-widget ui-widget-content m-b-1em half' id='e"+elength+"' style='padding-bottom: 0.5em;'><div class='ui-corner-top ui-widget-header m-b-1em'>Eval "+elength+":</div><label for='e"+elength+"oDate' style='margin-right:1em;'>Open Date:</label><input type='datetime' name='e"+elength+"oDate' id='e"+elength+"oDate'><br /><label for='e"+elength+"cDate' style='margin-right:1em;'>Close Date:</label><input type='datetime' name='e"+elength+"cDate' id='e"+elength+"cDate' style='margin-left:-2px;'><br /></div>";
                 $("#evals").append(template);
                 datePick();
                 remain++;
@@ -237,7 +265,7 @@
                 $("#studentlist > #"+lid).show();
             });
             $tabs.tabs("remove", indx);
-            $("#tabWarn").show();
+            $("#tabwarn").show();
             avgPoints();
         });
 

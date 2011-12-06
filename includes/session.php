@@ -27,8 +27,11 @@
         var $referrer;				//Last recorded site page viewed
         var $lastlogin;             //Last time user logged in
         var $currclass;             // the class the user is currently working in
+        var $class=array();         //The array holding all class info for currclass
         var $currproj;              // the project the user is currently working in - associated with $currclass
+        var $project=array();       //The array holding all project info for currproj
         var $currgroup;             // the group the user is currently working in - associated with $currproj
+        var $group=array();         //The array holding all group info for currgroup
 
         /**
         * Note: referrer should really only be considered the actual
@@ -116,13 +119,21 @@
                 $this->UID    = $this->userinfo['UID'];
                 $this->userlevel = $this->userinfo['ulevel'];
                 $curproj=$database->getProjects($this->UID);
-                $this->currproj = (count($curproj)==1)? $curproj[0]['pid']:'';
-                $curclas=$database->getClasses($this->UID);
-                $this->currclass = (count($curclas)==1)? $curclas[0]['CLID']:'';
-                if(count($curproj)==1){
-                    $curgrp=$database->getGroupID($curproj[0]['pid'],$this->UID);
-                    $this->currgroup = ($curgrp!='')? $curgrp:'';
+                if(!isset($this->currproj)){
+                    if(isset($_SESSION['currproj'])){$this->currproj=$_SESSION['currproj'];}else{
+                        $this->currproj = (count($curproj)==1)? $curproj[0]['PID']:null;
+                    }                    
                 }
+                $curclas=$database->getClasses($this->UID);
+                if(is_null($curclas)){
+                    if(isset($_SESSION['currclas'])){$this->currproj=$_SESSION['currclas'];}else{
+                        $this->currclass = (count($curclas)==1)? $curclas[0]['id']:null;
+                    }
+                }
+                if(count($curproj)==1){
+                    $curgrp=$database->getGroupID($curproj[0]['PID'],$this->UID);
+                    $this->currgroup = ($curgrp!='')? $curgrp:null;
+                }elseif(isset($_SESSION['currgroup'])){$this->currproj=$_SESSION['currgroup'];}
 
                 return true;
             }
@@ -426,11 +437,11 @@
 
         /**
         * isInstructor - Returns true if currently logged in user is
-        * an instructor, false otherwise.
+        * an instructor or admin, false otherwise.
         */
         function isInstructor(){
-            return ($this->userlevel == INSTRUCTOR_LEVEL ||
-            $this->username  == INSTRUCTOR_NAME);
+            return ($this->userlevel == INSTRUCTOR_LEVEL || $this->userlevel == ADMIN_LEVEL ||
+            $this->username  == INSTRUCTOR_NAME || $this->username  == ADMIN_NAME);
         }
 
         /**

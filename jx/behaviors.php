@@ -107,6 +107,7 @@
             if ($database->checkLocks($cid)){// Everyone is locked (accepted)
                 $message=$database->getGroupName($gid)." from ".$database->getProjName($pid)." have all accepted their group contract. Please <a href='".DOC_ROOT."'>log in</a> and edit or finalize the current version.";
                 $instructor=$database->getInstructor($pid);
+                $database->setFlag($instructor['UID'],0,null,$cid);// Unlock instructor.
                 $mailer->sendMail($instructor['fname']." ".$instructor['lname'],$instructor['email'],$message);
             }else{//some have not accepted yet
                 $lock=$database->getReviewFlags($cid,$id);

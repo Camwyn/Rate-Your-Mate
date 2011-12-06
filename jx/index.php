@@ -6,4 +6,3 @@ error_reporting(-1);
   $next_to_last = strrpos($url, "/", $last - strlen($url) - 1);
   $newurl=substr($url,0,$next_to_last)."/";
   header("Location: $newurl");
-?>

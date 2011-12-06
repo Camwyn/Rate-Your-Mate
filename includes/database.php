@@ -330,6 +330,23 @@
         }
 
         /**
+        * getUserlevel - returns a integer userlevel for the given ID
+        */
+        function getUserLevel($uid){
+            try{  
+                $sth=$this->connection->prepare("SELECT ulevel FROM Users WHERE UID=:uid");
+                $sth->bindParam(':uid', $uid, PDO::PARAM_STR);
+                return $sth->execute();
+                while($row=$sth->fetch(PDO::FETCH_ASSOC)){
+                    $level=$row['ulevel'];
+                }
+            }catch(Exception $e){
+                echo $e;
+            }
+            return $level;
+        }
+
+        /**
         * getProjects - returns an array of projects for the given ID
         */
         function getProjects($id){
@@ -344,15 +361,15 @@
             }
             try{
                 if($lvl>1){
-                    $sth=$this->connection->prepare("SELECT * FROM Users LEFT JOIN Projects ON instructor=UID WHERE UID =:uid");
+                    $sth=$this->connection->prepare("SELECT * FROM Users LEFT JOIN Projects ON instructor=UID WHERE UID =:uid ORDER BY Projects.pname ASC");
                     $sth->bindParam(':uid', $id, PDO::PARAM_STR); 
                 }else{
-                    $sth=$this->connection->prepare("SELECT * FROM Projects LEFT JOIN Groups ON Groups.PID=Projects.PID WHERE Groups.UID =:uid");
+                    $sth=$this->connection->prepare("SELECT * FROM Projects LEFT JOIN Groups ON Groups.PID=Projects.PID WHERE Groups.UID =:uid ORDER BY Projects.pname ASC");
                     $sth->bindParam(':uid', $id, PDO::PARAM_STR);   
                 }
                 $sth->execute();
                 while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
-                    $projects[]=array('pid'=>$row['PID'],'pname'=>$row['pname']);
+                    $projects[]=array('PID'=>$row['PID'],'pname'=>$row['pname']);
                 }
             }catch(Exception $e){
                 echo $e;
@@ -392,6 +409,23 @@
                 echo $e;
             }
             return $name;
+        }
+        
+        /**
+        * getUserName - returns 'real name' of user, given ID
+        */
+        function getUserEmail($id){
+            try{
+                $sth=$this->connection->prepare("SELECT email FROM Users WHERE UID=:id");
+                $sth->bindParam(':id', $id, PDO::PARAM_STR);
+                $sth->execute();
+                while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
+                    $email=$row['email'];
+                }
+            }catch(Exception $e){
+                echo $e;
+            }
+            return $email;
         }
 
         /**
@@ -451,7 +485,6 @@
 
         /**
         * getClasses - returns an array of all classes for a provided user
-        * needs to know if the person is a student or an instructor
         */
         function getClasses($id){
             try{
@@ -506,7 +539,7 @@
         * getGroupID - returns GID given user and project
         */
         function getGroupID($project,$user){
-            $gid;
+            $gid=null;
             try{
                 $sth=$this->connection->prepare("SELECT GID FROM Groups WHERE PID=:project AND UID=:user");
                 $sth->bindParam(':project', $project, PDO::PARAM_STR);
@@ -589,59 +622,67 @@
         * setFlag - sets a flag given user and eval or contract
         * since you only need one of them, pass null for the other
         */
-        function setFlag($user,$flag,$eval=null,$contract=null){
-            if($eval!=null){
-                $sth=$this->connection->prepare("INSERT INTO Review_Flags (RID,UID,Flag) VALUES (:eval,:user,:flag) ON DUPLICATE KEY UPDATE flag=:flag");
-                $sth->bindParam(':eval', $eval, PDO::PARAM_STR);
-                $sth->bindParam(':flag', $flag, PDO::PARAM_BOOL);//don't forget, true=locked
-                $sth->bindParam(':user', $user, PDO::PARAM_STR);
-                $sth->execute();
-            }elseif($contract!=null){
-                $sth=$this->connection->prepare("INSERT INTO Contract_Flags (CID,UID,Flag) VALUES (:contract,:user,:flag) ON DUPLICATE KEY UPDATE flag=:flag");
-                $sth->bindParam(':contract', $contract, PDO::PARAM_STR);
-                $sth->bindParam(':flag', $flag, PDO::PARAM_BOOL);//don't forget, true=locked
-                $sth->bindParam(':user', $user, PDO::PARAM_STR);
-
+        function setFlag($user,$flag,$role=null,$rev=null,$contract=null){
+            if(!is_null($rev)&&!is_null($role)){
+                $sth=$this->connection->prepare("INSERT INTO Review_Flags (RID,UID,role,Flag) VALUES (:RID,:user,:role,:flag) ON DUPLICATE KEY UPDATE Flag=:flag");
+                $sth->execute(array(':RID'=>$rev,':user'=>$user,':role'=>$role,':flag'=>$flag));
+            }elseif(!is_null($contract)){
+                $sth=$this->connection->prepare("INSERT INTO Contract_Flags (CID,UID,Flag) VALUES (:contract,:user,:flag) ON DUPLICATE KEY UPDATE Flag=:flag");
+                $sth->execute(array(':contract'=>$contract,':user'=>$user,':flag'=>$flag));
             }else{
-                return false;//something went wrong - most likely a variable wasn't passed, and we got no results.
+                return false;
             }
-            $sth->execute();
         }
-        
+
         /**
         * getRID - gets a review/eval ID given user and eval or contract
         * since you only need one of them, pass null for the other
-        */
-        function getRID($user,$flag,$eval=null,$contract=null){
+        
+        function getRID($user,$flag,$rid=null,$contract=null){
             if($eval!=null){
-                $sth=$this->connection->prepare("INSERT INTO Review_Flags (RID,UID,Flag) VALUES (:eval,:user,:flag) ON DUPLICATE KEY UPDATE flag=:flag");
-                $sth->bindParam(':eval', $eval, PDO::PARAM_STR);
+                $sth=$this->connection->prepare("INSERT INTO Review_Flags (RID,UID,Flag) VALUES (:rid,:user,:flag) ON DUPLICATE KEY UPDATE Flag=:flag");
+                $sth->bindParam(':rid', $rid, PDO::PARAM_STR);
                 $sth->bindParam(':flag', $flag, PDO::PARAM_BOOL);//don't forget, true=locked
                 $sth->bindParam(':user', $user, PDO::PARAM_STR);
-                $sth->execute();
             }elseif($contract!=null){
-                $sth=$this->connection->prepare("INSERT INTO Contract_Flags (CID,UID,Flag) VALUES (:contract,:user,:flag) ON DUPLICATE KEY UPDATE flag=:flag");
+                $sth=$this->connection->prepare("INSERT INTO Contract_Flags (CID,UID,Flag) VALUES (:contract,:user,:flag) ON DUPLICATE KEY UPDATE Flag=:flag");
                 $sth->bindParam(':contract', $contract, PDO::PARAM_STR);
                 $sth->bindParam(':flag', $flag, PDO::PARAM_BOOL);//don't forget, true=locked
                 $sth->bindParam(':user', $user, PDO::PARAM_STR);
-
             }else{
                 return false;//something went wrong - most likely a variable wasn't passed, and we got no results.
             }
             $sth->execute();
         }
+        */
 
         /**
-        * getReviewFlags - returns an array of 'locked' ids for a contract -
+        * getReviewFlags - returns an array of 'locked' ids for a review -
         *  to check for sending to the instructor. Note we've excluded the user's UID 
         * because if they are editing the contract it's obviously not flagged for them.
         */
-        function getReviewFlags($contract,$uid){
+        function getReviewFlags($eval,$uid){
             $flags=array();
             $sth=$this->connection->prepare("SELECT Flag, UID FROM Review_Flags WHERE RID=:eval AND UID != :uid");
-            $sth->bindParam(':eval', $eval, PDO::PARAM_STR);
-            $sth->bindParam(':uid', $uid, PDO::PARAM_STR);
-            $sth->execute();
+            $sth->execute(array(':eval'=>$eval,':uid'=>$uid));
+            while($row=$sth->fetch(PDO::FETCH_ASSOC)){
+                if($row['Flag']==1){
+                    $flags[]=$row['UID'];
+                }
+            }
+
+            return $flags;
+        }
+        
+        /**
+        * getContractFlags - returns an array of 'locked' ids for a contract -
+        *  to check for sending to the instructor. Note we've excluded the user's UID 
+        * because if they are editing the contract it's obviously not flagged for them.
+        */
+        function getContractFlags($cont,$uid){
+            $flags=array();
+            $sth=$this->connection->prepare("SELECT Flag, UID FROM Contract_Flags WHERE CID=:cont AND UID != :uid");
+            $sth->execute(array(':cont'=>$cont,':uid'=>$uid));
             while($row=$sth->fetch(PDO::FETCH_ASSOC)){
                 if($row['Flag']==1){
                     $flags[]=$row['UID'];
@@ -656,15 +697,16 @@
         */
         function checkLocks($contract){
             $lock=true;//all have accepted
-            $sth=$this->connection->prepare("SELECT Flag FROM Contract_Flags WHERE CID=:contract");
-            $sth->bindParam(':contract', $contract, PDO::PARAM_STR);
-            $sth->execute();
+            $sth=$this->connection->prepare("SELECT UID, Flag FROM Contract_Flags WHERE CID=:contract");
+            $sth->execute(array(':contract'=>$contract));
             while($row=$sth->fetch(PDO::FETCH_ASSOC)){
+                if($this->getUserLevel($row['UID'])>1&&$row['Flag']==true){
+                    return true;
+                }
                 if($row['Flag']==false){
                     $lock=false;
                 }
             }
-
             return $lock;
         }
 
@@ -672,12 +714,12 @@
         * groupRoster - returns an array of all students in provided group,
         *  except for current user, along with associated IDs and emails
         */
-        function groupRoster($gid,$user){
+        function groupRoster($gid,$user=null){
+            if(is_null($user)){$user='';}
             $groster=array();
             try{
                 $sth=$this->connection->prepare("SELECT fname,lname,email,Users.UID AS UID FROM Users JOIN Groups ON Users.UID=Groups.UID AND GID=:gid");
-                $sth->bindParam(':gid', $gid, PDO::PARAM_STR);
-                $sth->execute();
+                $sth->execute(array(':gid'=>$gid));
                 while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
                     if($row['UID']!=$user){
                         $groster[]=array('id'=>$row['UID'],'fname'=>$row['fname'],'lname'=>$row['lname'],'email'=>$row['email']);
@@ -690,16 +732,15 @@
         }
 
         /**
-        * getGroups - returns an array of all groups in provided class, along with associated GIDs
+        * getGroups - returns an array of all groups in provided project, along with associated GIDs
         */
-        function getGroups($class){
+        function getGroups($proj){
             $groups=array();
             try{
-                $sth=$this->connection->prepare("SELECT GID, name FROM Groups WHERE PID=:class");
-                $sth->bindParam(':class', $class, PDO::PARAM_STR);
-                $sth->execute();
+                $sth=$this->connection->prepare("SELECT DISTINCT GID, name FROM Groups WHERE PID=:proj");
+                $sth->execute(array(':proj'=>$proj));
                 while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
-                    $groups[]=array('id'=>$row['UID'],'fname'=>$row['fname'],'lname'=>$row['lname']);
+                    $groups[]=array('id'=>$row['GID'],'name'=>$row['name']);
                 }
             }catch(Exception $e){
                 echo $e;
@@ -707,25 +748,7 @@
             return $groups;
         }
 
-        /**
-        * getMembers - returns an array of all groups in provided class, along with associated GIDs
-        */
-        function getMembers($class,$group){
-            $members=array();
-            try{
-                $sth=$this->connection->prepare("SELECT fname,lname,UID FROM Users, Enrollment WHERE Users.UID=Enrollment.user AND Enrollment.class=:class ORDER BY lname ASC, fname ASC");
-                $sth->bindParam(':class', $class, PDO::PARAM_STR);
-                $sth->bindParam(':group', $group, PDO::PARAM_STR);
-                $sth->execute();
-                while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
-                    $members[]=array('id'=>$row['UID'],'fname'=>$row['fname'],'lname'=>$row['lname']);
-                }
-            }catch(Exception $e){
-                echo $e;
-            }
-            return $members;
-        }
-
+       
         /**
         * getBehaviors - returns an array of all behaviors for a provided group
         */
@@ -782,43 +805,63 @@
         }
 
         /**
-        * getChanged - returns an array of items (projects, behaviors, contracts, reviews) and who changed them if they changed within the last 14 days. Requires an associated $pid (project id)
+        * getChanged - returns an array of items (projects, behaviors, contracts, reviews)
+        * and who changed them (Users, Groups) if they changed within the last $span (default is forever) days. 
+        * Requires an associated $class (CID) and a $user (UID). Need to add conditionals for student/instructor
         */
-        function getChanged($pid){
+        function getChanged($class,$user,$span=null){
+            $period=($span==null)?"''":"(CURDATE() - INTERVAL $span DAY)";
+            try{
+                $sth=$this->connection->prepare("SELECT ulevel FROM Users WHERE UID=:id");
+                $sth->execute(array(':id'=>$user));
+                while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
+                    $lvl=$row['ulevel'];
+                }
+            }catch(Exception $e){
+                echo $e;
+            }
             $items=array();
             try{
-                //Projects - empty unless the instructor has made a change
-                $sth=$this->connection->prepare("SELECT PID AS item FROM Projects WHERE timestamp BETWEEN ((CURDATE() - INTERVAL 10 DAY) AND CURDATE()) AND PID=:pid");
-                $sth->bindParam(':pid', $pid, PDO::PARAM_STR);
-                $sth->execute();
-                while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
-                    $items['projects'][]=array('id'=>$row['item']);
+                //Projects
+                $pth=$this->connection->prepare("SELECT PID, pname FROM Projects WHERE class=:class");
+                $pth->bindParam(':class', $class, PDO::PARAM_STR);
+                $pth->execute();
+                while ($prow=$pth->fetch(PDO::FETCH_ASSOC)){
+                    $items['projects'][$prow['PID']]=array('PID'=>$prow['PID'],'name'=>$prow['pname']);
+                    if($lvl>1){
+                        $gth=$this->connection->prepare("SELECT DISTINCT GID, name FROM Groups WHERE PID=:pid");
+                        $gth->bindParam(':pid', $prow['PID'], PDO::PARAM_STR);
+                    }else{
+                        $gth=$this->connection->prepare("SELECT GID, name FROM Groups WHERE PID=:pid AND UID=:uid");
+                        $gth->bindParam(':pid', $prow['PID'], PDO::PARAM_STR);
+                        $gth->bindParam(':uid', $user, PDO::PARAM_STR);
+                    }
+                    $gth->execute();
+                    while ($grow=$gth->fetch(PDO::FETCH_ASSOC)){
+                        $items['projects'][$prow['PID']]['groups'][$grow['GID']]=array('GID'=>$grow['GID'],'name'=>$grow['name']);
+                        $cth=$this->connection->prepare("SELECT CID, C.timestamp, C.changedby, U.fname, U.lname FROM Contracts AS C, Users AS U WHERE C.timestamp >= :period  AND C.changedby = U.UID AND C.GID=:gid");
+                        $cth->bindParam(':gid', $grow['GID'], PDO::PARAM_STR);
+                        $cth->bindParam(':period', $period, PDO::PARAM_STR);
+                        $cth->execute();
+                        while ($crow=$cth->fetch(PDO::FETCH_ASSOC)){
+                            $items['projects'][$prow['PID']]['groups'][$grow['GID']]['contract']=array('CID'=>$crow['CID'],'timestamp'=>$crow['timestamp'],'changedby'=>$crow['fname']." ".$crow['lname'],'changeid'=>$crow['changedby']);
+                            $bth=$this->connection->prepare("SELECT B.BID, B.title, B.timestamp, B.changedby, U.lname,U.fname FROM Users AS U, Behaviors AS B WHERE U.UID=B.changedby AND B.timestamp >= :period AND B.CID IN (SELECT DISTINCT CID FROM Contracts WHERE GID=:gid)");
+                            $bth->bindParam(':period', $period, PDO::PARAM_STR);
+                            $bth->bindParam(':gid', $grow['GID'], PDO::PARAM_STR);
+                            $bth->execute();
+                            while ($brow=$bth->fetch(PDO::FETCH_ASSOC)){
+                                $items['projects'][$prow['PID']]['groups'][$grow['GID']]['contract']['behaviors'][$brow['BID']] = array('BID'=>$brow['BID'],'title'=>$brow['title'], 'timestamp'=>$brow['timestamp'],'changedby'=>$brow['fname']." ".$brow['lname'],'changeid'=>$brow['changedby']);
+                            }
+                            $rth=$this->connection->prepare("SELECT R.RID, R.timestamp, R.judge, U.fname, U.lname, F.Flag FROM Reviews AS R, Users AS U, Review_Flags AS F WHERE F.RID=R.RID AND R.timestamp >= :period  AND R.judge = U.UID AND R.EID IN (SELECT EID FROM Evals WHERE PID=:pid)");
+                            $rth->bindParam(':pid', $prow['PID'], PDO::PARAM_STR);
+                            $rth->bindParam(':period', $period, PDO::PARAM_STR);
+                            $rth->execute();
+                            while ($rrow=$rth->fetch(PDO::FETCH_ASSOC)){
+                                $items['projects'][$prow['PID']]['groups'][$grow['GID']]['contract']['reviews'][$rrow['RID']]=array('timestamp'=>$rrow['timestamp'],'flag'=>$rrow['Flag'],'changedby'=>$rrow['fname']." ".$rrow['lname'],'changeid'=>$rrow['judge']);
+                            }
+                        }
+                    }
                 }
-                
-                //Contracts
-                $sth=$this->connection->prepare("SELECT CID AS item, C.timestamp, C.changedby, U.fname, U.lname FROM Contracts AS C, Users AS U WHERE C.timestamp BETWEEN ((CURDATE() - INTERVAL 11 DAY) AND CURDATE()) AND C.changedby = U.UID AND C.GID IN (SELECT GID FROM Groups WHERE PID=:pid)");
-                $sth->bindParam(':pid', $pid, PDO::PARAM_STR);
-                $sth->execute();
-                while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
-                    $items['contracts'][$row['item']]=array('timestamp'=>$row['timestamp'],'changedby'=>$row['fname']." ".$row['lname']);
-                }
-                
-                //Behaviors
-                $sth=$this->connection->prepare("SELECT DISTINCT B.BID as item, B.title, B.timestamp, B.changedby, U.lname,U.fname FROM Users AS U, Behaviors AS B WHERE U.UID=B.changedby AND B.timestamp BETWEEN (CURDATE() - INTERVAL 12 DAY) AND CURDATE() AND B.CID IN (SELECT DISTINCT CID FROM Contracts WHERE GID IN (SELECT DISTINCT GID FROM Groups WHERE PID=:pid))");
-                $sth->bindParam(':pid', $pid, PDO::PARAM_STR);
-                $sth->execute();
-                while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
-                    $items['behaviors'][$row['item']]=array('title'=>$row['title'], 'timestamp'=>$row['timestamp'],'changedby'=>$row['fname']." ".$row['lname']);
-                }
-                
-                //Reviews
-                $sth=$this->connection->prepare("SELECT RID AS item, R.timestamp, R.judge, U.fname, U.lname FROM Reviews AS R, Users AS U WHERE R.timestamp BETWEEN ((CURDATE() - INTERVAL 13 DAY) AND CURDATE()) AND R.judge = U.UID AND R.EID IN (SELECT EID FROM Evals WHERE PID=:pid)");
-                $sth->bindParam(':pid', $pid, PDO::PARAM_STR);
-                $sth->execute();
-                while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
-                    $items['reviews'][$row['item']]=array('timestamp'=>$row['timestamp'],'changedby'=>$row['fname']." ".$row['lname']);
-                }
-
             }catch(Exception $e){
                 echo $e;
             }

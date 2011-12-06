@@ -1,19 +1,25 @@
 html{
     font-size:12px;
+    font-family: Helvetica, Arial, sans-serif;
+    width:1024px;
+    margin: auto auto;
+    text-align:center;
 }
 body{
-    width:95%;
+    width:100%;
     height:95%;
     margin:auto auto;
     padding:1em;
-	min-width:105em;
+    min-width:1024px;
+    text-align:left;
 }
 
 h1{
     font-size: 36px;
-    padding-bottom:1em;
-    padding-top:1em;
-    color:#E17009;
+    padding-top:.75em;
+    margin:0px;
+    color:#AA4643;
+    width:18em;
 }
 
 label{
@@ -24,10 +30,12 @@ label{
 .right{float:right;}
 .left{float:left;}
 .clear{clear:both;}
-
+a img{
+    border:none;
+}
 /* cheap-and-easy 'grid' styles */
 .whole{width:100%;}
-.half{width:49.5%;}
+.half{width:49%;}
 .third{width:32.3%;}
 .two-thirds{width:64.6%;}
 .quarter{width:24.2%;}
@@ -115,3 +123,45 @@ label{
 .ui-timepicker-div dl dt{ height: 25px; }
 .ui-timepicker-div dl dd{ margin: -25px 0 10px 65px; }
 .ui-timepicker-div td { font-size: 90%; }
+
+.qtip-contentWrapper {
+    font-size: 1.5em;
+}
+
+.rotate {
+    font-size:14px;
+    float: left;
+    font-weight: bold;
+    width: 16.583em;
+    min-width: 16.583em;
+    position: relative;
+    right: 9.25em;
+    top: 8em;    
+    text-align: center;
+    color:#fff;
+    -webkit-transform: rotate(-90deg);/* Safari */
+    -moz-transform: rotate(-90deg);/* Firefox */
+    -ms-transform: rotate(-90deg);/* IE */
+    -o-transform: rotate(-90deg);/* Opera */
+    /*filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);/* Internet Explorer */
+    writing-mode: bt-rl;
+}
+
+#evalnav{
+    font-size:1.75em;
+}
+
+#arrownav ul{
+    list-style:none;
+    margin-left:0px;
+    padding-left:0px;
+}
+#arrownav ul li{
+    display:inline;   
+}
+#arrownav ul li:nth-child(n+2) { 
+    margin-left:-15px;
+}
+#nav{
+    list-style:none;
+}
