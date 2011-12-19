@@ -18,7 +18,7 @@ foreach($_POST as $name=>$val){
 $id=$_POST['id'];
 $pid=(isset($_SESSION['currproj']))?$_SESSION['currproj']:$session->currproj;
 $eid=$database->getEID($pid);
-$rGUID=(isset($_POST['RID'])&&$_POST['RID']!='')?$_POST['RID']:$database->getGuid();
+$rGUID=(isset($_POST['RID'])&&$_POST['RID']!=null&&$_POST['RID']!='')?$_POST['RID']:$database->getGuid();
 foreach($comments as $comm){
     if($comm['comment']){//if no comment, no dB hit...and no null value error
         try{
@@ -64,3 +64,4 @@ if($_POST['method']=='save'){
     $instructor=$database->getInstructor($pid);
     $mailer->sendMail($instructor['fname']." ".$instructor['lname'],'stephenjpage@gmail.com',$message);// $instructor['email']
 }
+echo $rGUID;

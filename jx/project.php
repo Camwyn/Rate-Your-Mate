@@ -5,11 +5,11 @@ include("../includes/database.php");
 //grab $_post variables except for group lists  (we'll deal with them separately) and create a project
 $numeval=$_POST['numeval'];
 try{
-    $sth = $database->connection->prepare("INSERT INTO Projects (PID,pname,odate,cdate,instructor,late,groups,evals,contract,grades,evalgradepoints,gradepoints,class) VALUES (:pid,:pname,:odate,:cdate,:instructor,:late,:groups,:evals,:contract,:grades,:evalgradepoints,:gradepoints,:class);");
+    $sth = $database->connection->prepare("INSERT INTO Projects (PID,pname,odate,cdate,instructor,late,groups,evals,contract,contractdate,grades,evalgradepoints,gradepoints,class,maxpoints) VALUES (:pid,:pname,:odate,:cdate,:instructor,:late,:groups,:evals,:contract,:contractdate,:grades,:evalgradepoints,:gradepoints,:class,:maxpoints);");
     $pGUID=$database->getGuid();
-    $oDate=date( 'Y-m-d H:i:s', $_POST['oDate']);
-    $cDate=date( 'Y-m-d H:i:s', $_POST['cDate']);
-    $sth->execute(array(":pid"=>$pGUID,":pname"=>$_POST['pid'],":odate"=>$oDate,":cdate"=>$cDate,":instructor"=>$_POST['inst'],":late"=>$_POST['late'],":groups"=>$_POST['numgroups'],":evals"=>$numeval,":contract"=>$_POST['contract'],":grades"=>$_POST['grades'],":evalgradepoints"=>$_POST['evalgradepoints'],":gradepoints"=>$_POST['numpoints'],":class"=>$_POST['class']));
+    $oDate=date( 'Y-m-d H:i:s', strtotime($_POST['oDate']));
+    $cDate=date( 'Y-m-d H:i:s', strtotime($_POST['cDate']));
+    $sth->execute(array(":pid"=>$pGUID,":pname"=>$_POST['pid'],":odate"=>$oDate,":cdate"=>$cDate,":instructor"=>$_POST['inst'],":late"=>$_POST['late'],":groups"=>$_POST['numgroups'],":evals"=>$numeval,":contract"=>$_POST['contract'],":contractdate"=>$_POST['contractdate'],":grades"=>$_POST['grades'],":evalgradepoints"=>$_POST['evalgradepoints'],":gradepoints"=>$_POST['numpoints'],":class"=>$_POST['class'],":maxpoints"=>$_POST['points']));
 }catch(Exception $e){
     echo $e;
 }
@@ -35,8 +35,8 @@ for($i=1;$i<=$numeval;$i++){
         $eGUID=$database->getGUID();
         $open="e".$i."oDate";
         $close="e".$i."cDate";
-        $odate=date( 'Y-m-d H:i:s', $_POST[$open]);
-        $cdate=date( 'Y-m-d H:i:s', $_POST[$close]);
+        $odate=date( 'Y-m-d H:i:s', strtotime($_POST[$open]));
+        $cdate=date( 'Y-m-d H:i:s', strtotime($_POST[$close]));
         $sth->execute(array(":EID"=>$eGUID,":PID"=>$pGUID,":odate"=>$odate,":cdate"=>$cdate));
     }catch(Exception $e){
         echo $e;

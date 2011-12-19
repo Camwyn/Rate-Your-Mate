@@ -11,11 +11,12 @@
     }
     if(isset($_GET['student'])){$student=$_GET['student'];
         try{
-            $sth=$database->connection->prepare("SELECT R.judge AS judge,R.BID AS BID,R.scomm AS comments,R.icomm AS icomm,U.fname AS fname,U.lname AS lname,S.score AS score FROM Users AS U, Reviews AS R JOIN Scores AS S ON (R.subject=S.subject AND R.EID=S.EID) WHERE R.subject=:subject AND R.EID=:eid AND U.UID=R.judge");
+            $sth=$database->connection->prepare("SELECT R.judge AS judge,R.BID AS BID,R.RID AS RID,R.scomm AS comments,R.icomm AS icomm,U.fname AS fname,U.lname AS lname,S.score AS score FROM Users AS U, Reviews AS R JOIN Scores AS S ON (R.subject=S.subject AND R.EID=S.EID) WHERE R.subject=:subject AND R.EID=:eid AND U.UID=R.judge");
             $sth->execute(array(':subject'=>$_GET['student'],':eid'=>$eid));
             while($row=$sth->fetch(PDO::FETCH_ASSOC)){
                 $evals[$row['BID']][$row['judge']]['comments']=$row['comments'];
                 $evals[$row['BID']][$row['judge']]['icomm']=$row['icomm'];
+                $evals[$row['BID']]['RID']=$row['RID'];
             }
         }catch(Exception $e){
             echo $e;
@@ -44,7 +45,7 @@
         }catch(Exception $e){
             echo $e;
         }
-    }
+    }else{$student=null;}
     echo"Groups: <select id='groups' name='groups'><option>Choose one.</option>";
     foreach($groups as $group){//iterate through group array
         $selected=($gid&&$group['id']==$gid)?"selected='selected'":'';
@@ -117,13 +118,22 @@
                     }catch(Exception $e){
                         echo $e;
                     }
+                    try{
+                        $mth=$database->connection->prepare("SELECT grade FROM Eval_Grades WHERE role='subject' AND UID=:uid AND EID=:eid");
+                        $mth->execute(array(':eid'=>$eid,':uid'=>$student));
+                        while($row=$mth->fetch(PDO::FETCH_ASSOC)){
+                            $gp=$row['grade'];
+                        }
+                    }catch(Exception $e){
+                        echo $e;
+                    }
                 ?>
-                <input id='slideval' name='grade' max='<?php echo $max;?>' value='0' style='border:none;font-weight:bold;float:left;margin-left:2em;margin-top:-.2em'/>
+                <input id='slideval' name='grade' max='<?php echo $max;?>' value='<?php if(isset($gp)){echo $gp;};?>' style='border:none;font-weight:bold;float:left;margin-left:2em;margin-top:-.2em'/>
                 <div class='clear'></div>
             </div>
             <div class='half'>
             <?php 
-                echo"<input type='hidden' name='EID' value='$eid'/>";
+                echo"<input type='hidden' id='EID' name='EID' value='$eid'/>";
                 $mem=(isset($_GET['student']))?$_GET['student']:null;
                 echo"<input type='hidden' name='student' value='$mem'/>";
                 $team=$database->groupRoster($gid,$mem);//get list of group members from database, minus current user
@@ -135,15 +145,16 @@
                     foreach($team as $teammate){
                         $id=$teammate['id'];
                         $name=$teammate['fname']." ".$teammate['lname'];
+                        $rid=(isset($evals[$bid]['RID']))?$evals[$bid]['RID']:'';
                         echo "<h3>$name</h3>"
                         ."<div class='ui-corner-all' style='border:1px solid #A6C9E2;border-left:2em solid ".$colors[$c].";'>"
-                        ."<textarea rows='5' cols='10' name='comment.$bid.$id'"
+                        ."<textarea rows='5' cols='10' id='comment.$bid.$id.$rid' name='comment.$bid.$id.$rid'"
                         ."style='border:none;overflow:auto;resize:vertical;width:100%' placeholder='Enter comments for $name here.'>";
-                        if(isset($evals[$bid][$id])){echo $evals[$bid][$id]['comments'];}
+                        if(isset($evals[$bid][$id])){echo stripslashes($evals[$bid][$id]['comments']);}
                         echo"</textarea>"
-                        ."<textarea rows='5' cols='10' name='icomm.$bid.$id'"
+                        ."<textarea rows='5' cols='10' id='icomm.$bid.$id.$rid' name='icomm.$bid.$id.$rid'"
                         ."style='border:none;border-top:1px solid #A6C9E2;overflow:auto;resize:vertical;width:100%' placeholder='Enter instructor response to comments by $name here.'>";
-                        if(isset($evals[$bid][$id]['icomm'])){echo $evals[$bid][$id]['icomm'];}
+                        if(isset($evals[$bid][$id]['icomm'])){echo stripslashes($evals[$bid][$id]['icomm']);}
                         echo"</textarea></div>";
                         ($c<6)?$c++:$c=0;//for looping through our rainbow ;)
                     }
@@ -155,12 +166,12 @@
             <div class='ui-corner-all' style='border:1px solid #A6C9E2;border-left:2em solid <?php echo $colors[$c+1];?>;'>
                 <?php $placeholder=(isset($studentname))?"Enter additional instructor comments for $studentname here.":"Please choose a student at the top of the page.";
                 ?>
-                <textarea cols='10' rows='8' name='iaddcomm' style='test-align:left;border:none;overflow:auto;resize:vertical;width:100%' placeholder='<?php echo $placeholder;?>'><?php
+                <textarea cols='10' rows='8' id='iaddcomm' name='iaddcomm' style='test-align:left;border:none;overflow:auto;resize:vertical;width:100%' placeholder='<?php echo $placeholder;?>'><?php
                         try{
                             $ath=$database->connection->prepare("SELECT comments FROM Add_Comments WHERE subject=:subject AND instructor=:instructor AND EID=:EID");
                             $ath->execute(array(":subject"=>$student,":instructor"=>$session->UID,":EID"=>$eid,));
                             while($row=$ath->fetch(PDO::FETCH_ASSOC)){
-                                echo trim($row['comments']);
+                                echo stripslashes($row['comments']);
                             }
                         }catch(Exception $e){
                             echo $e;
@@ -176,16 +187,21 @@
 </div>
 <script>
     $(document).ready(function(){
+        nicEditors.allTextAreas();
         $('h2 a[href]').qtip();
         $("input:submit, button, #reset").button();
 
         $( "#dialog" ).dialog({
-            autoOpen:false
+            autoOpen:false,
+            buttons: {
+                Ok: function(){$( this ).dialog( "close" );}
+            }
         });
 
         $('.slider').slider({
             max:$("#slideval").attr('max'),
             min:0,
+            value:$("#slideval").val(),
             slide: function( event, ui ) {
                 $("#slideval").val(ui.value);
             }
@@ -262,11 +278,24 @@
         });
 
         $("#accept, #save").click(function(){
-            var method="&method="+$(this).attr('id');
+            var method="method="+$(this).attr('id');
+            var comments='';
+            comments+="&student="+$("#students").val()+"&grade="+$("#slideval").val()+"&EID="+$("#EID").val();
+            $("textarea[name^=comment]").each(function(i){
+                var textValue=nicEditors.findEditor($(this).attr('id')).getContent();
+                textValue=textValue.replace(/\u00a0/g, " ");
+                comments+="&"+$(this).attr('id')+"="+textValue;
+            });
+            $("textarea[name^=icomm]").each(function(){
+                var textValue=nicEditors.findEditor($(this).attr('id')).getContent();
+                textValue=textValue.replace(/\u00a0/g, " ");
+                comments+="&"+$(this).attr('id')+"="+textValue;
+            });
+            comments+="&iaddcomm="+nicEditors.findEditor("iaddcomm").getContent();
             $.ajax({  
                 type:"POST",  
                 url: "../jx/evaluatee.php?v="+jQuery.Guid.New(),  
-                data: $("#evaluateeForm").serialize()+method+"&sid="+jQuery.Guid.New(),
+                data: method+comments+"&sid="+jQuery.Guid.New(),
                 success:function(){
                     $("#dialog").text("Your grading has been submitted.");
                     $("#dialog").dialog("open");

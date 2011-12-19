@@ -333,6 +333,7 @@
         * getUserlevel - returns a integer userlevel for the given ID
         */
         function getUserLevel($uid){
+            $level=null;
             try{  
                 $sth=$this->connection->prepare("SELECT ulevel FROM Users WHERE UID=:uid");
                 $sth->bindParam(':uid', $uid, PDO::PARAM_STR);
@@ -349,7 +350,8 @@
         /**
         * getProjects - returns an array of projects for the given ID
         */
-        function getProjects($id){
+        function getProjects($id, $class=null){
+            $projects=null;
             try{
                 $sth=$this->connection->prepare("SELECT ulevel FROM Users WHERE UID=:id");
                 $sth->execute(array(':id'=>$id));
@@ -359,20 +361,40 @@
             }catch(Exception $e){
                 echo $e;
             }
-            try{
-                if($lvl>1){
-                    $sth=$this->connection->prepare("SELECT * FROM Users LEFT JOIN Projects ON instructor=UID WHERE UID =:uid ORDER BY Projects.pname ASC");
-                    $sth->bindParam(':uid', $id, PDO::PARAM_STR); 
-                }else{
-                    $sth=$this->connection->prepare("SELECT * FROM Projects LEFT JOIN Groups ON Groups.PID=Projects.PID WHERE Groups.UID =:uid ORDER BY Projects.pname ASC");
-                    $sth->bindParam(':uid', $id, PDO::PARAM_STR);   
+            if ($class!= null){
+                try{
+                    if($lvl>1){
+                        $sth=$this->connection->prepare("SELECT * FROM Projects WHERE class= :class");
+                        $sth->bindParam(':class', $class, PDO::PARAM_STR); 
+                    }else{
+                        $sth=$this->connection->prepare("SELECT * FROM Projects LEFT JOIN Groups ON Groups.PID=Projects.PID WHERE Groups.UID =:uid AND Projects.class=:class ORDER BY Projects.pname ASC");
+                        $sth->bindParam(':uid', $id, PDO::PARAM_STR);   
+                        $sth->bindParam(':class', $class, PDO::PARAM_STR);
+                    }
+                    $sth->execute();
+                    while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
+                        $projects[]=array('PID'=>$row['PID'],'pname'=>$row['pname']);
+                    }
+                }catch(Exception $e){
+                    echo $e;
                 }
-                $sth->execute();
-                while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
-                    $projects[]=array('PID'=>$row['PID'],'pname'=>$row['pname']);
+
+            }else{
+                try{
+                    if($lvl>1){
+                        $sth=$this->connection->prepare("SELECT * FROM Users LEFT JOIN Projects ON instructor=UID WHERE UID =:uid ORDER BY Projects.pname ASC");
+                        $sth->bindParam(':uid', $id, PDO::PARAM_STR); 
+                    }else{
+                        $sth=$this->connection->prepare("SELECT * FROM Projects LEFT JOIN Groups ON Groups.PID=Projects.PID WHERE Groups.UID =:uid ORDER BY Projects.pname ASC");
+                        $sth->bindParam(':uid', $id, PDO::PARAM_STR);   
+                    }
+                    $sth->execute();
+                    while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
+                        $projects[]=array('PID'=>$row['PID'],'pname'=>$row['pname']);
+                    }
+                }catch(Exception $e){
+                    echo $e;
                 }
-            }catch(Exception $e){
-                echo $e;
             }
             return $projects;
         }                                  
@@ -398,6 +420,7 @@
         * getUserName - returns 'real name' of user, given ID
         */
         function getUserName($id){
+            $name=null;
             try{
                 $sth=$this->connection->prepare("SELECT fname,lname FROM Users WHERE UID=:id");
                 $sth->bindParam(':id', $id, PDO::PARAM_STR);
@@ -410,7 +433,7 @@
             }
             return $name;
         }
-        
+
         /**
         * getUserName - returns 'real name' of user, given ID
         */
@@ -449,6 +472,7 @@
         * getProjName - returns name of a project, given ID
         */
         function getProjName($pid){
+            $name=null;
             try{
                 $sth=$this->connection->prepare("SELECT pname FROM Projects WHERE PID=:pid");
                 $sth->bindParam(':pid', $pid, PDO::PARAM_STR);
@@ -635,28 +659,6 @@
         }
 
         /**
-        * getRID - gets a review/eval ID given user and eval or contract
-        * since you only need one of them, pass null for the other
-        
-        function getRID($user,$flag,$rid=null,$contract=null){
-            if($eval!=null){
-                $sth=$this->connection->prepare("INSERT INTO Review_Flags (RID,UID,Flag) VALUES (:rid,:user,:flag) ON DUPLICATE KEY UPDATE Flag=:flag");
-                $sth->bindParam(':rid', $rid, PDO::PARAM_STR);
-                $sth->bindParam(':flag', $flag, PDO::PARAM_BOOL);//don't forget, true=locked
-                $sth->bindParam(':user', $user, PDO::PARAM_STR);
-            }elseif($contract!=null){
-                $sth=$this->connection->prepare("INSERT INTO Contract_Flags (CID,UID,Flag) VALUES (:contract,:user,:flag) ON DUPLICATE KEY UPDATE Flag=:flag");
-                $sth->bindParam(':contract', $contract, PDO::PARAM_STR);
-                $sth->bindParam(':flag', $flag, PDO::PARAM_BOOL);//don't forget, true=locked
-                $sth->bindParam(':user', $user, PDO::PARAM_STR);
-            }else{
-                return false;//something went wrong - most likely a variable wasn't passed, and we got no results.
-            }
-            $sth->execute();
-        }
-        */
-
-        /**
         * getReviewFlags - returns an array of 'locked' ids for a review -
         *  to check for sending to the instructor. Note we've excluded the user's UID 
         * because if they are editing the contract it's obviously not flagged for them.
@@ -673,7 +675,7 @@
 
             return $flags;
         }
-        
+
         /**
         * getContractFlags - returns an array of 'locked' ids for a contract -
         *  to check for sending to the instructor. Note we've excluded the user's UID 
@@ -732,23 +734,38 @@
         }
 
         /**
-        * getGroups - returns an array of all groups in provided project, along with associated GIDs
+        * getGroups - returns an array of all groups in provided project, 
+        * along with associated GIDs. If given optional $uid, gives the group
+        * that user is in in that project.
         */
-        function getGroups($proj){
+        function getGroups($proj,$uid=null){
             $groups=array();
-            try{
-                $sth=$this->connection->prepare("SELECT DISTINCT GID, name FROM Groups WHERE PID=:proj");
-                $sth->execute(array(':proj'=>$proj));
-                while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
-                    $groups[]=array('id'=>$row['GID'],'name'=>$row['name']);
+            if(is_null($uid)){
+                try{
+                    $sth=$this->connection->prepare("SELECT DISTINCT GID, name FROM Groups WHERE PID=:proj");
+                    $sth->execute(array(':proj'=>$proj));
+                    while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
+                        $groups[]=array('id'=>$row['GID'],'name'=>$row['name']);
+                    }
+                }catch(Exception $e){
+                    echo $e;
                 }
-            }catch(Exception $e){
-                echo $e;
+            }else{
+                try{
+                    $sth=$this->connection->prepare("SELECT DISTINCT GID, name FROM Groups WHERE PID=:proj AND UID=:uid");
+                    $sth->execute(array(':proj'=>$proj,":uid"=>$uid));
+                    while ($row=$sth->fetch(PDO::FETCH_ASSOC)){
+                        $groups[]=array('id'=>$row['GID'],'name'=>$row['name']);
+                    }
+                }catch(Exception $e){
+                    echo $e;
+                }
             }
+
             return $groups;
         }
 
-       
+
         /**
         * getBehaviors - returns an array of all behaviors for a provided group
         */
@@ -803,6 +820,10 @@
             }
             return $eid;
         }
+
+        /**
+        * getOverdue - returns an array of overdue items NEEDED!
+        */
 
         /**
         * getChanged - returns an array of items (projects, behaviors, contracts, reviews)
@@ -869,7 +890,6 @@
         }
 
     };//end MySQLDB
-
     /* Create database connection */
     $database=new MySQLDB;
 ?>

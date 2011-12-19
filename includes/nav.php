@@ -1,8 +1,17 @@
 <?php
     if(!isset($session->UID)){include("session.php");}
-    if(isset($session->currproj)||isset($_SESSION['currproj'])){$project=$session->currproj=$_SESSION['currproj'];}elseif(isset($_GET['project'])){$project=$_GET['project'];}else{$project=null;}
+    if(isset($session->currproj)){
+        $project=$session->currproj;
+    }elseif(isset($_SESSION['currproj'])){
+        $project=$_SESSION['currproj'];
+    }elseif(isset($_GET['project'])){
+        $project=$_GET['project'];
+    }else{
+        $project=null;
+    }
     if(!is_null($project)&&$project!='Chose one...'){
         $path=($session->isInstructor())?"instructor/evaluator.php":"student/evaluation.php";
+        $path2=($session->isInstructor())?"instructor/evaluatee.php":"student/evaluation.php";
         $instructor=($session->isInstructor())?$session->UID:$database->getInstructor($session->currproj);
         echo"<ul>";
         if($session->isInstructor()){//for instructors/admins
@@ -59,8 +68,8 @@
             }catch(Exception $e){
                 echo $e;
             }
+            $past=0;$cur=0;
             for($i=0;$i<count($evals);$i++){
-                $past=0;$cur=0;
                 $now=time();
                 if(strtotime($evals[$i]['odate']) > $now && strtotime($evals[$i]['cdate']) < $now){
                     try{
@@ -74,7 +83,7 @@
                     }
                 }elseif(strtotime($evals[$i]['cdate']) > $now){
                     $past++;
-                    if(strtotime($evals[$i+1]['odate']) < $now){
+                    if(isset($evals[$i+1])&&strtotime($evals[$i+1]['odate']) < $now){
                         $cur++;
                     }
                 }
@@ -120,7 +129,7 @@
                     }
                 }elseif(strtotime($evals[$i]['cdate']) > $now){
                     $past++;
-                    if(strtotime($evals[$i+1]['odate']) < $now){
+                    if(isset($evals[$i+1])&&strtotime($evals[$i+1]['odate']) < $now){
                         $cur++;
                     }
                 }
@@ -131,7 +140,7 @@
             }elseif(max($cur,$past)==$past){
                 $eimg='pastEvaluatee.png';
             }
-            echo"<li><a href='../$path'><img src='../img/InstructorArrows/$eimg'/></a></li>";
+            echo"<li><a href='../$path2'><img src='../img/InstructorArrows/$eimg'/></a></li>";
 
             /**
             * Grade Arrow - Links to instructor/grades.php
@@ -183,7 +192,7 @@
                     $eimg='currentEvaluations.png';
                 }elseif(strtotime($evals[$i]['cdate']) > $now){
                     $eimg='pastWedge.png';
-                    if(strtotime($evals[$i+1]['odate']) < $now){
+                    if(isset($evals[$i+1])&&strtotime($evals[$i+1]['odate']) < $now){
                         $eimg='currentEvaluations.png';
                     }
                 }
@@ -195,7 +204,7 @@
             * Evals graded and ready for viewing.
             * Should there be wedges for each eval?
             */
-            echo"<li><a href='../student/evaluatee.php'><img src='../img/StudentArrows/upcomingViewGrades.png'/></a></li>";
+            echo"<li><a href='../student/viewevals.php'><img src='../img/StudentArrows/upcomingViewGrades.png'/></a></li>";
             /**
             * Final Grade Arrow - Links to student/grades.php
             * Current when instructor has submitted a project

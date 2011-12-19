@@ -7,13 +7,15 @@
     $id=$_POST['ID'];// Current user
     $gid=$_POST['GID'];// Current group
     $pid=$_POST['PID'];// Current project
-    if(isset($_POST['CID'])){//check for contract first, if exists - get copy.
+    $behaviors=null;
+    $contract=null;
+    if(isset($_POST['CID'])&&$_POST['CID']!=null&&$_POST['CID']!=''){//check for contract first, if exists - get copy.
         $cid=$_POST['CID'];
         $contdata=$database->getContract($gid);// Grab all the info in one fell swoop!
-        $behaviors=$contdata['behaviors'];// Separate out the behaviors for easier access.
-        $contract=$contdata['contract'][0];// Separate out the contract for easier access.
+        $behaviors=(isset($contdata['behaviors']))?$contdata['behaviors']:null;// Separate out the behaviors for easier access.
+        $contract=(isset($contdata['contract']))?$contdata['contract'][0]:null;// Separate out the contract for easier access.
     }else{// Contract not in dB so create a new GUID
-        $cid=$database->$database->getGuid();
+        $cid=$database->getGuid();
         $contract=null;// Cast contract as a null value for our checks
     }
     $group=$database->groupRoster($gid,$id);// We'll need this to direct emails
@@ -93,7 +95,7 @@
     }
 
     if($method=='accept'){// They hit the accept button
-        if(checkDiff($contract,$behaves,$behaviors)){// There's a difference, update
+        if(checkDiff($contract,$behaves,$behaviors)||$behaviors==null){// There's a difference, update
             updateContract($database,$cid,$gid,$id);
             updateBehaviors($database,$behaves,$cid,$id);
             $database->setFlag($id,1,null,null,$cid);// Lock me.
@@ -123,7 +125,7 @@
             }
         }
     }else{// They hit the save button
-        if(checkDiff($contract,$behaves,$behaviors)){// There's a difference, update
+        if(checkDiff($contract,$behaves,$behaviors)||$behaviors==null){// There's a difference, update
             updateContract($database,$cid,$gid,$id);
             updateBehaviors($database,$behaves,$cid,$id);
             $database->setFlag($id,0,null,null,$cid);// Unlock me.

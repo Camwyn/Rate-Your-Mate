@@ -1,0 +1,32 @@
+<script language="JavaScript">
+
+
+    var d1 = new Date(2010, 10, 1); //e2odate
+    var d2 = new Date(2012, 10, 3); //e1cdate
+
+    var milli_d1 = d1.getTime();
+    var milli_d2 = d2.getTime();
+    var diff = milli_d1 - milli_d2;
+
+
+document.write(diff);
+
+
+
+	if (diff < 0) {
+//document.write("Negative");
+$("#dialog").text("You must enter a date prior to close");
+return false;
+
+}
+	else {
+
+//document.write("Positive");
+
+}
+
+
+
+</script>
+
+

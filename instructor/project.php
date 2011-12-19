@@ -175,7 +175,11 @@
         $("#tabwarn").hide();
         datePick();        
         var tab_count = 3;
-        $("#dialog").dialog({autoOpen:false,title:"Project Creation"});//hides dialog to prepare for use as needed.
+        $("#dialog").dialog({autoOpen:false,
+            buttons: {
+                Ok: function(){$( this ).dialog( "close" );}
+            },
+            title:"Project Creation"});//hides dialog to prepare for use as needed.
         // tabs init with a custom tab template and an "add" callback filling in the content
         var $tabs = $("#groups").tabs({
             tabTemplate: "<li><a href='#{href}'>#{label}</a> <span class='ui-icon ui-icon-close right' title='Removing a group also removes any students added to the group.'>Remove Tab</span></li>",
@@ -297,6 +301,16 @@
             });
         }
 
+       function DateDiff(diff){
+           var d1 = $("#e2odate");
+           var d2 = $("#e1cdate");
+           var milli_d1 = d1.getTime();
+           var milli_d2 = d2.getTime();
+           var diff = milli_d1 - milli_d2;
+                     
+           return diff;       
+        }
+
         function avgPoints(){
             var ngroups = $('#groups').tabs("length");
             var nkids=0;
@@ -339,6 +353,29 @@
                     cntr++;
                 })
             });
+            
+            if($("#pid").val()==''){
+                    $("#dialog").text("You must enter a Project name.");
+                    $("#dialog").dialog("open");
+                    return false;
+                    }     
+            else if($("#e1oDate").val()==''){
+                    $("#dialog").text("You must enter an Open date.");
+                    $("#dialog").dialog("open");
+                    return false;
+                    }  
+            else if($("#e1cdate").val()==''){
+                    $("#dialog").text("You must enter a Close date.");
+                    $("#dialog").dialog("open");
+                    return false;
+                    }  
+            else if($("#contractdate").val()==''){
+                    $("#dialog").text("You must enter a Contract Completion Date.");
+                    $("#dialog").dialog("open");
+                    return false;
+                    }  
+
+   
             $.ajax({  
                 type:"POST",  
                 url: "../jx/project.php?v="+jQuery.Guid.New(),  

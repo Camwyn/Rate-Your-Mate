@@ -23,14 +23,15 @@
         }
         if(isset($_GET['student'])){$student=$_GET['student'];
             try{
-                $sth=$database->connection->prepare("SELECT R.subject AS subject, R.BID AS BID, R.scomm AS comments, R.icomm AS icomm, U.fname AS fname, U.lname AS lname, S.score AS score FROM Users AS U, Reviews AS R JOIN Scores AS S ON (R.subject=S.subject AND R.EID=S.EID AND R.judge=S.judge) WHERE R.judge=:judge AND R.EID=:eid AND U.UID=R.subject");
+                $sth=$database->connection->prepare("SELECT R.subject AS subject, R.BID AS BID,R.RID as RID, R.scomm AS comments, R.icomm AS icomm, U.fname AS fname, U.lname AS lname, S.score AS score FROM Users AS U, Reviews AS R JOIN Scores AS S ON (R.subject=S.subject AND R.EID=S.EID AND R.judge=S.judge) WHERE R.judge=:judge AND R.EID=:eid AND U.UID=R.subject");
                 $sth->execute(array(':judge'=>$_GET['student'],':eid'=>$eid));
                 while($row=$sth->fetch(PDO::FETCH_ASSOC)){
                     $scores[$row['subject']]['id']=$row['subject'];
                     $scores[$row['subject']]['score']=$row['score'];
                     $scores[$row['subject']]['name']=$row['lname']." ".$row['fname'];
-                    $evals[$row['BID']][$row['subject']]=$row['comments'];
-                    $evals[$row['BID']][$session->UID]=$row['icomm'];// This assumes that the instructor is the viewer!
+                    $evals[$row['BID']][$row['subject']]['comments']=$row['comments'];
+                    $evals[$row['BID']]['RID']=$row['RID'];
+                    $evals[$row['BID']][$row['subject']]['icomm']=$row['icomm'];
                 }
             }catch(Exception $e){
                 echo $e;
@@ -64,6 +65,7 @@
             }
         }
         echo"</select>";
+       // echo"<pre>";print_r($evals);echo"</pre>";
     ?>
 
     <div id='main'>
@@ -136,8 +138,17 @@
                             }catch(Exception $e){
                                 echo $e;
                             }
+                            try{
+                                $mth=$database->connection->prepare("SELECT grade FROM Eval_Grades WHERE role='judge' AND UID=:uid AND EID=:eid");
+                                $mth->execute(array(':eid'=>$eid,':uid'=>$student));
+                                while($row=$mth->fetch(PDO::FETCH_ASSOC)){
+                                    $gp=$row['grade'];
+                                }
+                            }catch(Exception $e){
+                                echo $e;
+                            }
                         ?>
-                        <input id='slideval' name='grade' max=<?php echo $max;?> value='0' style='border:none;font-weight:bold;float:left;margin-left:2em;margin-top:-.2em'/>
+                        <input id='slideval' name='grade' max=<?php echo $max;?> value='<?php if(isset($gp)){echo $gp;};?>' style='border:none;font-weight:bold;float:left;margin-left:2em;margin-top:-.2em'/>
                         <div class='clear'></div>
                     </div>
 
@@ -151,41 +162,51 @@
                             foreach($team as $teammate){
                                 $id=$teammate['id'];
                                 $name=$teammate['fname']." ".$teammate['lname'];
+                                $rid=(isset($evals[$bid]['RID']))?$evals[$bid]['RID']:null;
                                 echo "<h3>$name</h3>"
                                 ."<div class='ui-corner-all' style='border:1px solid #A6C9E2;border-left:2em solid ".$colors[$c].";'>"
-                                ."<textarea rows='5' cols='10' name='comment-$bid.$id'"
+                                ."<textarea rows='5' cols='10' id='comment.$bid.$id.$rid' name='comment.$bid.$id.$rid'"
                                 ."style='border:none;overflow:auto;resize:vertical;width:100%' placeholder='Enter comments for $name here...'>";
-                                if(isset($evals[$bid][$id])){echo $evals[$bid][$id];}
+                                if(isset($evals[$bid][$id]['comments'])){echo stripslashes($evals[$bid][$id]['comments']);}
                                 echo"</textarea>"
-                                ."<textarea rows='5' cols='10' name='icomm-$bid.$id'"
+                                ."<textarea rows='5' cols='10' id='icomm.$bid.$id.$rid' name='icomm.$bid.$id.$rid'"
                                 ."style='border:none;border-top:1px solid #A6C9E2;overflow:auto;resize:vertical;width:100%' placeholder='Enter instructor comments for $name here...'>";
-                                if(isset($evals[$bid][$session->UID])){echo $evals[$bid][$session->UID];}
+                                if(isset($evals[$bid][$id]['icomm'])){echo stripslashes($evals[$bid][$id]['icomm']);}
                                 echo"</textarea>"
                                 ."</div>";
                                 ($c<6)?$c++:$c=0;//for looping through our rainbow ;)
                             }
                         }
                     ?>
-                    <br />            
+                    <br />
+                    <!-- hidden fields -->
+                    <input type='hidden' name='EID' id='EID' value='<?php echo $eid;?>' />
+                    <!-- buttons -->
                     <button type="reset" name='reset' id='reset' onClick='history.go(0)' style='font-size:1.5em;'>Cancel</button>
                     <button type="submit" name='save' id='save' style='font-size:1.5em;'>Save Changes</button>
                     <button type="submit" class='ui-state-active' name='accept' id='accept' style='font-size:1.5em;'>Submit</button>
                     <?php }?>
             </form>
-            <?php }else{echo"Contract not set for this group yet!";}?>
+            <?php }else{echo"Please choose a group and student above!";}?>
         <div id='dialog'>Dialog placeholder</div>
     </div>
     <?php } ?>
 <script>
     $(document).ready(function(){
+        nicEditors.allTextAreas();
+
         $('h2 a[href]').qtip();
         $("input:submit, button, #reset").button();
         $( "#dialog" ).dialog({
-            autoOpen:false
+            autoOpen:false,
+            buttons: {
+                Ok: function(){$( this ).dialog( "close" );}
+            }
         });
         $('.slider').slider({
             max:$("#slideval").attr('max'),
             min:0,
+            value: $("#slideval").val(),
             slide: function( event, ui ) {
                 $("#slideval").val(ui.value);
             }
@@ -256,10 +277,23 @@
 
         $("#accept, #save").click(function(){
             var method="method="+$(this).attr('id');
+            var comments='';
+            $("textarea[name^=comment]").each(function(i){
+                var textValue=nicEditors.findEditor($(this).attr('id')).getContent();
+                textValue=textValue.replace(/\u00a0/g, " ");
+                comments+="&"+$(this).attr('id')+"="+textValue;
+                i++
+            });
+            $("textarea[name^=icomm]").each(function(){
+                var textValue=nicEditors.findEditor($(this).attr('id')).getContent();
+                textValue=textValue.replace(/\u00a0/g, " ");
+                comments+="&"+$(this).attr('id')+"="+textValue;
+            });
+            comments+="&student="+$("#students").val()+"&grade="+$("#slideval").val()+"&EID="+$("#EID").val();
             $.ajax({  
                 type:"POST",  
-                url: "../jx/gradejudge.php?v="+jQuery.Guid.New(),  
-                data: $("#evaluatorForm").serialize()+"&sid="+jQuery.Guid.New(),
+                url: "../jx/evaluator.php?v="+jQuery.Guid.New(),  
+                data: method+comments+"&sid="+jQuery.Guid.New(),
                 success:function(){
                     $("#dialog").text("Your grading has been submitted.");
                     $("#dialog").dialog("open");

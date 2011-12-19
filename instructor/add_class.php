@@ -1,5 +1,8 @@
 <?php //do NOT put anything above this line!
     $_GET['page']=$page='Add Class Form'; //Variable to set up the page title - feeds header.php
+    if($session->lvl==1){
+        header('Location:'.DOC_ROOT);
+    }
     include('../includes/header.php');//this include file has all the paths for the stylsheets and javascript in it.
     $students=$database->getStudents();
 ?>
@@ -11,6 +14,7 @@
             <div class='ui-corner-top ui-widget-header m-b-1em'>Class:</div>
             <form name="className" id="className" method="post">
                 <!-- input -->
+                <input type='hidden' name='instructor' id='instructor' value='<?php echo $session->UID;?>'/>
                 Class Name: <input type="text" name='cname' id='cname'>
                 <div class='ui-state-error ui-corner-all' style='display:none;font-style:italic;padding:.1em;float:right' id='classname'>
                     <span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span>Class name already in use!
@@ -19,7 +23,7 @@
                     <li class='placeholder' style='font-style:italic;font-weight:normal'>Add students here</li>
                 </ul>
                 <input type = "submit" value = "Add Class" />
-                
+
             </form>
         </div>
 
@@ -33,11 +37,18 @@
                 ?>
             </ul>
         </div>
-		<!-- Java script that allows you to drag and drop students from a list into a class
-                Class list will be on left and student list will be on right-->
+        <div id='dialog'>Dialog placeholder</div>
+        <!-- Java script that allows you to drag and drop students from a list into a class
+        Class list will be on left and student list will be on right-->
         <script>
             $(document).ready(function(){
                 $("input:submit, button").button();
+                $( "#dialog" ).dialog({
+                autoOpen:false,
+                buttons: {
+                    Ok: function(){$( this ).dialog( "close" );}
+                }
+            });
                 $("#classlist").droppable({
                     activeClass: "ui-state-highlight",
                     hoverClass: "ui-state-hover",
@@ -66,27 +77,31 @@
                     });
                 }
 
-				$("#className").submit(function(){
-					
-					var cntr =0;
-					var strng='';
-					$("#classlist").children().each(function(){
+                $("#className").submit(function(){					
+                    var cntr =0;
+                    var strng='';
+                    $("#classlist").children().each(function(){
                         strng+='&id['+cntr+']='+$(this).attr('id');
-						cntr++;
-					});
-					
-					$.ajax({
+                        cntr++;
+                    });
+                    if($("#cname").val()==''){
+                    $("#dialog").text("You must enter a class name.");
+                    $("#dialog").dialog("open");
+                    return false;
+                    }
+                    $.ajax({
                         type:"POST",  
                         url: "../jx/newclass.php?v="+jQuery.Guid.New(),  
-                        data: "cname="+$('#cname').val()+strng+"&sid="+jQuery.Guid.New(),
+                        data: "instructor="+$('#instructor').val()+"&cname="+$('#cname').val()+strng+"&sid="+jQuery.Guid.New(),
                         success:function(data){
-								
-						}
+                            $("#dialog").text("Your class ("+$('#cname').val()+") has been created.");
+                            $("#dialog").dialog("open");
+                        }
                     });
-					return false;
-					
-				}); 
-				
+                    return false;
+
+                }); 
+
                 $('li>a').live('click', function(){
                     var id=$(this).parent().attr('id');
                     $(this).parent().remove();

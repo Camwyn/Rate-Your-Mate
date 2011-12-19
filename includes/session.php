@@ -245,6 +245,9 @@
             /* Unset PHP session variables */
             unset($_SESSION['username']);
             unset($_SESSION['UID']);
+            unset($_SESSION['currclass']);
+            unset($_SESSION['currproj']);
+            unset($_SESSION['curgroup']);
 
             /* Reflect fact that user has logged out */
             $this->logged_in = false;

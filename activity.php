@@ -49,7 +49,6 @@
                                     }catch(Exception $e){
                                         echo $e;
                                     }
-
                                     try{
                                         $sth=$database->connection->prepare("SELECT odate, cdate FROM Evals WHERE odate > CURDATE() AND PID=:pid");
                                         $sth->bindParam(':pid', $pid, PDO::PARAM_STR);
@@ -66,15 +65,13 @@
                                         echo $e;
                                     }
                                 ?>
-
                             </div>
                             <h3 style='padding-left:2em;'>Current</h3>
                             <div>
-
                                 <?php
                                     if($session->isInstructor()){
                                         try{
-                                            $sth=$database->connection->prepare("SELECT count(Flag) AS count, RID FROM Review_Flags WHERE Flag=1 AND Graded=0 AND RID IN(SELECT DISTINCT RID FROM Reviews WHERE subject IN (SELECT DISTINCT UID FROM Groups WHERE GID=:gid))");
+                                            $sth=$database->connection->prepare("SELECT count(DISTINCT RID) AS count FROM Review_Flags WHERE Flag=1 AND Graded=0 AND RID IN(SELECT DISTINCT RID FROM Reviews WHERE subject IN (SELECT DISTINCT UID FROM Groups WHERE GID=:gid))");
                                             $sth->bindParam(':gid',$gid,PDO::PARAM_STR);
                                             $sth->execute();
                                         }catch(Exception $e){
@@ -138,7 +135,7 @@
                                         echo"</ul>";
                                         echo"<ul style='list-style:none' class='gradelist'>";
                                         try{
-                                            $cth=$database->connection->prepare("SELECT count(UID), EID as count FROM Eval_Grades WHERE UID=:uid AND EID IN (SELECT EID FROM Evals WHERE PID=:pid)");
+                                            $cth=$database->connection->prepare("SELECT count(UID) as count, EID FROM Eval_Grades WHERE UID=:uid AND EID IN (SELECT EID FROM Evals WHERE PID=:pid)");
                                             $cth->bindParam(':uid',$session->UID,PDO::PARAM_STR);
                                             $cth->bindParam(':pid',$pid,PDO::PARAM_STR);
                                             $cth->execute();
@@ -166,7 +163,6 @@
                                             echo $e;
                                         }
                                         echo"</ul>";
-
                                     }
                                 ?>
 
@@ -179,7 +175,6 @@
                                         if(array_key_exists('contract',$group)){
                                             $changedby=($group['contract']['changeid']==$session->UID)?'you':$group['contract']['changedby'];
                                             echo"<li>The <a href='$gid'>contract</a> for {$group['name']} was changed by <i>$changedby</i> ".date('D M jS, Y',strtotime($group['contract']['timestamp'])).".</li>";
-
                                         ?>
                                     </ul>
                                     <ul style='list-style:none;line-height:2em;' class='behaviorlist'>
@@ -202,7 +197,7 @@
                                                 }
                                             }
                                         }else{
-                                            echo"No contract for this group";
+                                            echo"<li>No <a href='$gid'>contract</a> for this group yet.</li>";
                                         }
                                     ?>
                                 </ul>

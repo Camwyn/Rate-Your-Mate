@@ -8,6 +8,7 @@
  * choose to delete specific users, delete inactive users,
  * ban users, update user levels, etc.
  */
+  $_GET['page']='User Administration'; //Variable to set up the page title - feeds header.php
 include("../includes/header.php");
 
 /**
@@ -15,29 +16,18 @@ include("../includes/header.php");
  * a nicely formatted html table.
  */
 function displayUsers(){
-   global $database;
-   $q = "SELECT username,userlevel,email,timestamp "
-       ."FROM ".TBL_USERS." ORDER BY userlevel DESC,username";
-   $result = $database->query($q);
-   /* Error occurred, return given name by default */
-   $num_rows = mysql_numrows($result);
-   if(!$result || ($num_rows < 0)){
-      echo "Error displaying info";
-      return;
-   }
-   if($num_rows == 0){
-      echo "Database table empty";
-      return;
-   }
+   global $database, $names;
+   $qth = $database->connection->prepare("SELECT username,ulevel,email,timestamp FROM ".TBL_USERS." ORDER BY ulevel DESC,username");
+   $qth->execute();
    /* Display table contents */
    echo "<table align=\"left\" border=\"1\" cellspacing=\"0\" cellpadding=\"3\">\n";
    echo "<tr><td><b>Username</b></td><td><b>Level</b></td><td><b>Email</b></td><td><b>Last Active</b></td></tr>\n";
-   for($i=0; $i<$num_rows; $i++){
-      $uname  = mysql_result($result,$i,"username");
-      $ulevel = mysql_result($result,$i,"userlevel");
-      $email  = mysql_result($result,$i,"email");
-      $time   = mysql_result($result,$i,"timestamp");
-
+   while($row=$qth->fetch(PDO::FETCH_ASSOC)){
+      $uname  = $row["username"];
+      $ulevel = $row["ulevel"];
+      $email  = $row["email"];
+      $time   = $row["timestamp"];
+      $names[]=$row["username"];
       echo "<tr><td>$uname</td><td>$ulevel</td><td>$email</td><td>$time</td></tr>\n";
    }
    echo "</table><br>\n";
@@ -89,11 +79,7 @@ else{
 ?>
 
 <body>
-<h1>Admin Center</h1>
 <h2>Temporary Placeholder - NOT functioning yet!</h2>
-<font size="5" color="#ff0000">
-<b>::::::::::::::::::::::::::::::::::::::::::::</b></font>
-<font size="4">Logged in as <b><? echo $session->username; ?></b></font><br><br>
 Back to [<a href="../index.php">Main Page</a>]<br><br>
 <?
 if($form->num_errors > 0){
@@ -127,7 +113,13 @@ displayUsers();
 <form action="adminprocess.php" method="POST">
 <tr><td>
 Username:<br>
-<input type="text" name="upduser" maxlength="30" value="<? echo $form->value("upduser"); ?>">
+<select name="upduser">
+<?php
+    foreach($names as $name){
+        echo"<option value='$name''>$name</option>";
+    }
+?>
+</select>
 </td>
 <td>
 Level:<br>
@@ -160,7 +152,13 @@ Level:<br>
 <? echo $form->error("deluser"); ?>
 <form action="adminprocess.php" method="POST">
 Username:<br>
-<input type="text" name="deluser" maxlength="30" value="<? echo $form->value("deluser"); ?>">
+<select name="upduser">
+<?php
+    foreach($names as $name){
+        echo"<option value='$name''>$name</option>";
+    }
+?>
+</select>
 <input type="hidden" name="subdeluser" value="1">
 <input type="submit" value="Delete User">
 </form>

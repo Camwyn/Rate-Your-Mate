@@ -17,7 +17,7 @@
     }
 ?>
 <body style='min-width:105em;'>
-    <h3 style='font-style:italic;'>This evaluation is due on <?php echo date('D M jS, Y',strtotime($duedate));?> by <?php echo date('g:i a',strtotime($duedate));?> </h3>
+    <h3 style='font-style:italic;'><?php if(isset($duedate)){echo"This evaluation is due on ".date('D M jS, Y',strtotime($duedate))." by ".date('g:i a',strtotime($duedate));}else{echo"Your group does not have an accepted <a href='contract.php'>contract</a>!";}?> </h3>
     <?php
         if($eid){
             $maxpoints=$database->getMaxPoints($project);
@@ -57,9 +57,9 @@
                             $id=$teammate['id'];
                             $name=$teammate['fname']." ".$teammate['lname'];
                             echo"<div class='ui-corner-all' style='width:54.3em;border:1px solid #A6C9E2;border-left:2em solid ".$colors[$c].";'>"
-                            ."<textarea rows='5' cols='10' name='comment-$bid.$id'"
+                            ."<textarea rows='5' cols='10' name='comment-$bid.$id' id='comment-$bid.$id'"
                             ."style='border:none;overflow:auto;resize:vertical;width:50em' $disabled placeholder='Enter Comments for $name Here...'>";
-                            if(isset($evals[$bid])){echo $evals[$bid][$id];}
+                            if(isset($evals[$bid])){echo stripslashes($evals[$bid][$id]);}
                             echo"</textarea></div>";
                             ($c<6)?$c++:$c=0;//for looping through our rainbow ;)
                         }
@@ -82,7 +82,7 @@
                                         echo"<li value='$id' title='$name' style='padding:.2em;background-color:".$colors[$c]."'>"
                                         ."<div id='slider-$id' class='slider' style='width:65%;margin:.5em;background-color:".$colors[$c].";color:".$colors[$c].";'></div>"
                                         ."<div><div id='name-$id' style='float:left;margin-top:.5em;margin-left:1em;font-weight:bold;color:#FFF'>$name</div>";
-                                        $scoreid=(isset($scores[$id]))?$scores[$id]:'';
+                                        $scoreid=(isset($scores[$id]))?$scores[$id]:0;
                                         echo"<input id='sval-$id' title='$name' class='slideval' style='text-align:right;float:right;width:2.5em;font-weight:bold;margin-top:.2em;margin-right:.2em;' value='$scoreid'/></div>"
                                         ."<input type='hidden' id='slidval-$id' value='$scoreid'/>"
                                         ."<div class='clear'></div></li>";
@@ -111,16 +111,23 @@
         <script type='text/javascript' src='../js/jquery.linkedsliders.min.js'></script>
         <script>
             $(document).ready(function(){
-                var maxPoints=$('#maxpoints').val();
+                nicEditors.allTextAreas();
+                
+                var maxPoints=parseInt($('#maxpoints').val());
+                
                 var numStudents=parseInt(<?php echo $numstudents;?>);
-                var maxIndPoints=maxPoints-$('#slidelist>li').length+1;
+                
+                var maxIndPoints=parseInt(maxPoints-$('#slidelist>li').length+1);
+                
                 $("input:submit, button, #reset").button();
+                
                 $( "#dialog" ).dialog({
                     autoOpen:false,
                     buttons: {
                         Ok: function(){$( this ).dialog( "close" );}
                     }
                 });
+                
                 $( "#modialog" ).dialog({
                     modal: true,
                     autoOpen:false,
@@ -129,7 +136,12 @@
                     }
                 });
 
-
+                
+                $('.behavetitle').click(function(){
+                    $('#explanation').text($(this).attr('title'));
+                    return false;
+                });
+                
                 //pie chart stuff:        
                 var optionsPie = {// set up 'blank' chart
                     chart: {
@@ -166,8 +178,8 @@
                     var vid=$(this).attr('id').substr(5);
                     var nam=$("#name-"+vid).text();
                     var val=($(this).val()>0)?$(this).val():(maxPoints/numStudents);
-                    $(this).val(val);
-                    $("#slider-"+vid).slider( "option", "value", val );
+                    $(this).val(parseInt(val));
+                    $("#slider-"+vid).slider( "option", "value", val);
                     seriesPieItem.push(nam);                    
                     seriesPieItem.push(parseFloat(val));
                     seriesPie.data.push(seriesPieItem);                    
@@ -178,6 +190,60 @@
                 // Create the chart
                 var chart = new Highcharts.Chart(optionsPie);
 
+                //slider stuff:
+
+                function distribVals(i){
+                    if(i==null){i=0;}
+                    $('.slider').slider().each(function(i){                            
+                        var sval = $(this).slider( "option", "value" );
+                        var vid=$(this).attr('id').substr(7);
+                        var nam=$("#name-"+vid).text();
+                        chart.series[0].data[i].update([nam,sval]);
+                        $('#sval-'+vid).val(sval);
+                        i++;
+                    });
+
+                }
+
+                $('.slider').slider({
+                    max: maxIndPoints,
+                    slide:function(){distribVals();}
+                }).linkedSliders({
+                    total:maxPoints,
+                    policy:'next'
+                });
+
+                $('.slider').slider().each(function(i){
+                    var vid=$(this).attr('id').substr(7);
+                    var val=$('#sval-'+vid).val();
+                    var nam=$("#name-"+vid).text();
+                    $('#slider-'+vid).slider( "option", "value", val);
+                    //chart.series[0].data[i].update([nam,val]);
+                    i++;
+                });
+
+                $('.slideval').keyup(function(i){
+                    var val=$(this).val();
+                    var vid=$(this).attr('id').substr(5);
+                    $('#slider-'+vid).slider( "option", "value", val);
+                    var sindex=$(this).index('.slideval');
+                    var nam=$("#name-"+vid).text();
+                    //chart.series[0].data[sindex].update([nam,val]);
+                });
+
+                $('.ui-slider-handle').mousedown(function(){
+                    var comments=false;
+                    $('.nicEdit-main').each(function(){
+                        if($(this).text().length<=0){comments=true;}
+                    });
+                    if(comments==true){
+                        $('#modialog').dialog("open");
+                    }else{
+                        $( ".slider" ).slider( "option", "disabled", false );
+                    }
+                });
+                
+                //form submission
                 $("#accept, #save").click(function(){
                     var scorenums='';
                     var twit=true;
@@ -193,7 +259,11 @@
                         $("input[id^=sval-]").each(function(){
                             scorenums+="&"+$(this).attr('id')+"="+$(this).val();
                         });
-                        $("textarea[name^=comment-]").each(function(){scorenums+="&"+$(this).attr('name')+"="+$(this).val();});
+                        $("textarea[name^=comment-]").each(function(){
+                            var textValue=nicEditors.findEditor($(this).attr('id')).getContent();
+                            textValue=textValue.replace(/\u00a0/g, " ");
+                            scorenums+="&"+$(this).attr('id')+"="+textValue;
+                        });
                         var id="&id="+$('#id').val();
                         var EID="&EID="+$("#EID").val();
                         var RID="&RID="+$("#RID").val();
@@ -202,7 +272,8 @@
                             type:"POST",  
                             url: "../jx/review.php?v="+jQuery.Guid.New(),  
                             data: method+id+EID+RID+scorenums+"&sid="+jQuery.Guid.New(),
-                            success:function(){
+                            success:function(data){
+                                $("#RID").val(data);
                                 $("#dialog").text("Your scoring has been submitted.");
                                 $("#dialog").dialog("open");
                             },
@@ -214,69 +285,11 @@
                     }
                     return false;  
                 });
-
-                //slider stuff:
-
-                function distribVals(m){
-                    if(m==null){m=0;}
-                    $('.slider').slider().each(function(i){                            
-                        var sval = $(this).slider( "option", "value" );
-                        var vid=$(this).attr('id').substr(7);
-                        var nam=$("#name-"+vid).text();
-                        chart.series[0].data[i].update([nam,sval]);
-                        $('#sval-'+vid).val(sval);
-                        i++;
-                    });
-
-                }
-
-                $('.slider').slider({
-                    max: maxIndPoints
-                }).linkedSliders({
-                    total:maxPoints,
-                    policy:'next'
-                });
-
-                $('.slider').slider().each(function(i){
-                    var vid=$(this).attr('id').substr(7);
-                    var val=$('#sval-'+vid).val();
-                    var nam=$("#name-"+vid).text();
-                    $('#slider-'+vid).slider( "option", "value", val );
-                    //chart.series[0].data[i].update([nam,val]);
-                    i++;
-                });
-
-                $('.slideval').keyup(function(i){
-                    var val=$(this).val();
-                    var vid=$(this).attr('id').substr(5);
-                    $('#slider-'+vid).slider( "option", "value", val );
-                    var sindex=$(this).index('.slideval');
-                    var nam=$("#name-"+vid).text();
-                    //chart.series[0].data[sindex].update([nam,val]);
-                });
-
-                $('.behavetitle').click(function(){
-                    $('#explanation').text($(this).attr('title'));
-                    return false;
-                });
-                $('.ui-slider-handle').mousedown(function(){
-                    var comments=true;
-                    $('textarea').each(function(){
-                        if($(this).val().length>0){comments=false;}
-                    });
-                    //if(comments==true){$('#modialog').dialog("open");}else{$( ".slider" ).slider( "option", "disabled", false );}
-                });
-
-                $('.slider').slider().each(function(i){
-                    $(this).slider('option','change',function(){
-                        distribVals();
-                    });
-                });
-
+                
             });
         </script>
         <?php }else{
-            echo"<h3>No evaulation due at this time.</h3>";
+            if(isset($duedate)){echo"<h3>No evaulation due at this time.</h3>";}
     } ?>
     </body>
 </html>

@@ -1,5 +1,5 @@
 <?php
-    error_reporting(-1);
+    //error_reporting(-1);
     include('session.php'); //includes sessions file, which includes the others needed
     if($session->logged_in){
         if($_SERVER['SCRIPT_NAME']=='/index.php'){        
@@ -21,18 +21,21 @@
         <link href='../js/jquery-ui/css/custom-theme/jquery-ui-1.8.16.custom.css' rel='stylesheet'/>
         <!-- javascript files -->
         <script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js'></script>
-        <script type='text/javascript' src='../js/jquery-ui/js/jquery-ui-1.8.16.custom.min.js'></script>
+        <script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.min.js'></script>
+        <script type='text/javascript' src='../js/jquery.linkedsliders.min.js'></script>
         <script type='text/javascript' src='../js/jquery.qtip-1.0.0-rc3.min.js'></script>
         <script type="text/javascript" src="../js/jquery-ui-timepicker.js"></script>
         <script type="text/javascript" src="../js/jquery.guid.js"></script>
         <script type="text/javascript" src="../js/ui.spinner.min.js"></script>
         <script type="text/javascript" src="../js/highcharts.js"></script>
+        <script type="text/javascript" src="../js/nicEdit.js"></script>
         <!-- other stuff -->
         <link rel="shortcut icon" href="../RYM_favicon2.ico" />
         <script>
             $(document).ready(function(){
                 $("#classid").change(function(){
                     var classChange=$(this).val();
+                    if(classChange=='Choose one...'){classChange=null;}
                     $.ajax({  
                         type:"POST",  
                         url: "../jx/setclass.php?v="+jQuery.Guid.New(),  
@@ -42,6 +45,7 @@
                 });
                 $("#projid").change(function(){
                     var projChange=$(this).val();
+                    if(projChange=='Choose one...'){projChange=null;}
                     $.ajax({  
                         type:"POST",  
                         url: "../jx/setproj.php?v="+jQuery.Guid.New(),  
@@ -51,6 +55,7 @@
                 });
                 $("#groupid").change(function(){
                     var groupChange=$(this).val();
+                    if(groupChange=='Choose one...'){groupChange=null;}
                     $.ajax({  
                         type:"POST",  
                         url: "../jx/setgroup.php?v="+jQuery.Guid.New(),  
@@ -58,13 +63,17 @@
                         success: function(){location.reload();} 
                     }); 
                 });
+                $("#testlink").change(function(){
+                   var link=$(this).val();
+                   window.location.href=link;
+                });
             });
         </script>
     </head>
     <body>
     <div id='header' style='width: 100%;'>
     <div class='left'>
-        <img src='../img/rymLogo.png' />
+        <img src='../img/rymLogo.png' style='height:6em;float:left;margin-right:2em;' />
         <h1><?php echo $_GET['page'];?><img src='../img/help.png' title='help'/></h1>
         <div id='arrownav'>
             <?php include('nav.php');?>
@@ -75,55 +84,36 @@
         if($session->logged_in){
             $greeting="You are logged in as ".$session->realname." <a href='".DOC_ROOT."/logout.php'>Logout</a><br/>";
             $classes=$database->getClasses($session->UID);
-            $projects=$database->getProjects($session->UID);
+            $projects=$database->getProjects($session->UID,$class=$session->currclass);
             echo"<div class='right' style='width:250px;'>$greeting";
             echo"<br/>Choose Class: <select id='classid'><option>Choose one...</option>";
             $ses=(!is_null($session->currclass))?$session->currclass:$_SESSION['currclass'];
             foreach($classes as $class){
-                $sel=($class['id']==$_SESSION['currclass'])?"selected='selected'":"";
+                $sel=($class['id']==$_SESSION['currclass']||$class==$session->currclass)?"selected='selected'":"";
                 echo"<option value='".$class['id']."' $sel>".$class['name']."</option>";
             }
             echo"</select>";
             if(isset($_SESSION['currclass'])){
                 echo"<br/>Choose Project: <select id='projid'><option>Choose one...</option>";
                 foreach($projects as $project){
-                    $sel=($project['PID']==$_SESSION['currproj'])?"selected='selected'":"";
+                    $sel=($project['PID']==$_SESSION['currproj']||$project['PID']==$session->currproj)?"selected='selected'":"";
                     echo"<option value='".$project['PID']."' $sel>".$project['pname']."</option>";
                 }
                 echo"</select>";
             }
             if(isset($_SESSION['currproj'])){
                 echo"<br/>Choose Group: <select id='groupid'><option>Choose one...</option>";
-                $groups=$database->getGroups($_SESSION['currproj']);
+                $groups=($session->isInstructor())?$database->getGroups($_SESSION['currproj']):$database->getGroups($_SESSION['currproj'],$session->UID);
                 foreach($groups as $group){
-                    $sel=($group['id']==$_SESSION['currgroup'])?"selected='selected'":"";
+                    $sel=($group['id']==$_SESSION['currgroup']||$group['id']==$session->currgroup)?"selected='selected'":"";
                     echo"<option value='".$group['id']."' $sel>".$group['name']."</option>";
                 }
                 echo"</select>";
             }
         ?>
         <div id='navblock' class='three-quarters'>
-        <!--- Nav links --->
-        <ul id='nav'>
-        <li style='font-weight:bold'>Testing Links:</li>
-        <li><a href="<?php echo DOC_ROOT;?>/activity.php">Activity</a></li>
-        <!--- Teacher-only links --->
-        <?php if ($session->isInstructor()||$session->isAdmin()){ ?>
-            <li><a href="<?php echo DOC_ROOT;?>/instructor/add_class.php">Add A Class</a></li>
-            <li><a href="<?php echo DOC_ROOT;?>/instructor/evaluatee.php">Evaluatee Report</a></li>
-            <li><a href="<?php echo DOC_ROOT;?>/instructor/evaluator.php">Evaluator Report</a></li>
-            <li><a href="<?php echo DOC_ROOT;?>/student/contract.php">Student Contract</a></li>
-            <li><a href="<?php echo DOC_ROOT;?>/instructor/override.php">Overrides</a></li>
-            <li><a href="<?php echo DOC_ROOT;?>/instructor/project.php">New Project</a></li>
-            <li><a href="#">Submit Grades</a></li>
-            <!--- Student-only links --->
-            <?php }else{ ?>
-            <li><a href="<?php echo DOC_ROOT;?>/student/contract.php">Contract</a></li>
-            <li><a href="<?php echo DOC_ROOT;?>/student/evaluation.php">Do an Evaluation</a></li>
-            <li><a href="<?php echo DOC_ROOT;?>">View Your Evaluations (is this needed?)</a></li>
-            <li><a href="<?php echo DOC_ROOT;?>/student/student-final-report.php">Final Report</a></li>
-            <?php }?>
-        </ul> 
+        <?php include('testnav.php');?>
+
         </div>
         <?php
             echo"</div>";

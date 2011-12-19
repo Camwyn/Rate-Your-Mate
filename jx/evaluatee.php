@@ -3,23 +3,26 @@ error_reporting(-1);
 $sid=htmlentities($_POST["sid"],ENT_QUOTES,'iso-8859-1');
 if(!isset($_GET['v'])||!isset($_POST['student'])||$sid=NULL){die;}//tests for dummy data added for security
 include("../includes/session.php");
-$i=0;
+$n=0;$k=0;
 foreach($_POST as $name=>$val){
     $postsub=substr($name,0,3);
     if($postsub=='ico'){//'icomm.bfb171aa-1223-11e1-afe7-000c29964cd2.aa6e4e22-f2e2-11e0-863b-003048965058'=>'blah'
-        list($title,$behavior,$judge)=explode("_", $name);
-        $icoms[$i]['behavior']=$behavior;
-        $icoms[$i]['judge']=$judge;
-        $icoms[$i]['comment']=$val;
+        list($title,$behavior,$judge,$rid)=explode("_", $name);
+        $icoms[$n]['behavior']=$behavior;
+        $icoms[$n]['judge']=$judge;
+        $icoms[$n]['comment']=$val;
+        $ridarr[]=$rid;
+        $n++;
     }else if($postsub=='com'){//'comment.d2c4c3aa-1223-11e1-afe7-000c29964cd2.aa6e4e22-f2e2-11e0-863b-003048965058'=>'Richard is a rock star!'
-            list($title,$behavior,$judge)=explode("_", $name);
-            $comments[$i]['behavior']=$behavior;
-            $comments[$i]['judge']=$judge;
-            $comments[$i]['comment']=$val;
+            list($title,$behavior,$judge,$rid)=explode("_", $name);
+            $comments[$k]['behavior']=$behavior;
+            $comments[$k]['judge']=$judge;
+            $comments[$k]['comment']=$val;
+            $ridarr[]=$rid;
+            $k++;
         }
-        $i++;
 }
-
+//echo"<pre>";print_r($comments);echo"</pre>";
 $id=$_POST['student'];
 $eid=$_POST['EID'];
 $grade=$_POST['grade'];
